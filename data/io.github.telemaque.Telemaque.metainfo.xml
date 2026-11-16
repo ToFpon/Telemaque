@@ -73,6 +73,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.1" date="2026-11-16">
+      <description>
+        <ul>
+          <li>The status bar shows both public addresses, IPv4 and IPv6 (only the last one announced was shown); the local address is gone</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-11-16">
       <description>
         <p>First release.</p>

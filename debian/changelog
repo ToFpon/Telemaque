@@ -1,3 +1,10 @@
+telemaque (1.0.1~noble1) noble; urgency=medium
+
+  * Barre d'état : les deux adresses publiques, IPv4 et IPv6 (seule la
+    dernière annoncée s'affichait) ; l'adresse locale est retirée.
+
+ -- Tof <nourpon@gmail.com>  Mon, 16 Nov 2026 11:32:02 +0000
+
 telemaque (1.0.0~noble1) noble; urgency=medium
 
   * Première version publiée : client BitTorrent tout simple pour GNOME sur
