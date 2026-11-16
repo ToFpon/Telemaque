@@ -73,6 +73,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.2" date="2026-11-16">
+      <description>
+        <ul>
+          <li>The public address follows network changes: turning a VPN on or off while Télémaque is running updates the status bar within seconds</li>
+          <li>New option “Check the public address” (on by default): asks ipify.org for the IPv4 and IPv6 address at start and when the network changes</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-11-16">
       <description>
         <ul>

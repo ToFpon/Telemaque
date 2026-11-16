@@ -1,3 +1,13 @@
+telemaque (1.0.2~noble1) noble; urgency=medium
+
+  * L'adresse publique suit les changements de réseau : un VPN activé ou
+    coupé pendant que Télémaque tourne est vu en quelques secondes.
+  * Nouvelle option « Vérifier l'adresse publique » (active par défaut) :
+    l'adresse IPv4 et IPv6 est demandée à ipify.org au démarrage et quand
+    le réseau change.
+
+ -- Tof <nourpon@gmail.com>  Mon, 16 Nov 2026 13:00:17 +0000
+
 telemaque (1.0.1~noble1) noble; urgency=medium
 
   * Barre d'état : les deux adresses publiques, IPv4 et IPv6 (seule la
