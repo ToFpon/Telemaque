@@ -39,6 +39,7 @@ class TelemaqueApp(Adw.Application):
         self._inhibit = 0
         self._held = False
         self._quitting = False
+        self.tray = None
 
     # -- démarrage ------------------------------------------------------------------------------
     def do_startup(self):
@@ -138,6 +139,8 @@ class TelemaqueApp(Adw.Application):
         if self._held:
             self.release()
             self._held = False
+        if self.tray is not None:
+            self.tray.hide()
         self.window.present()
         return self.window
 
@@ -148,6 +151,11 @@ class TelemaqueApp(Adw.Application):
             self._held = True
         if self.window is not None:
             self.window.set_visible(False)
+        if features.enabled("tray"):
+            if self.tray is None:
+                from .tray import Tray
+                self.tray = Tray(self, self.show_window, self.quit_all)
+            self.tray.show()
 
     def do_activate(self):
         self.show_window()
@@ -222,6 +230,8 @@ class TelemaqueApp(Adw.Application):
         if self._inhibit:
             self.uninhibit(self._inhibit)
             self._inhibit = 0
+        if self.tray is not None:
+            self.tray.hide()
         if self.window is not None:
             self.window.save_state()
             self.window.destroy()

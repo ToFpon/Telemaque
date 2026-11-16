@@ -29,9 +29,11 @@ Debian package, like its siblings [Odysseus](https://github.com/ToFpon/Odysseus)
 - **The list**: progress, speed, time left; pause, resume, remove (with or without the files);
   open the result or show it in its folder.
 - **Sharing**: stops at the ratio you choose (1.0 by default), never stops, or stops right away.
+- Option: **delete the .torrent file** once added, to leave fewer files lying around.
 - **Speed limits**, port, DHT; a desktop notification when a download is finished; the computer does not
   suspend during a download.
-- **Closing the window** while something is running: keep running in the background, or quit.
+- **Closing the window** while something is running: keep running in the background (with an icon in the
+  top bar: status, show, pause all, quit), or quit.
   Downloads resume by themselves at the next start.
 
 ### Install (from the source code, for now)
@@ -59,9 +61,11 @@ Flatpak : un simple paquet Debian, comme ses frères [Odysseus](https://github.c
 - **La liste** : progression, vitesse, temps restant ; pause, reprise, suppression (avec ou sans les
   fichiers) ; ouvrir le résultat ou l'afficher dans son dossier.
 - **Le partage** : s'arrête au ratio choisi (1,0 par défaut), ne s'arrête jamais, ou s'arrête tout de suite.
+- En option : **supprimer le fichier .torrent** une fois ajouté, pour laisser moins de fichiers qui traînent.
 - **Limites de vitesse**, port, DHT ; une notification du bureau à la fin d'un téléchargement ;
   l'ordinateur ne se met pas en veille pendant un téléchargement.
-- **Fermer la fenêtre** pendant que ça tourne : continuer en arrière-plan, ou quitter. Les téléchargements
+- **Fermer la fenêtre** pendant que ça tourne : continuer en arrière-plan (avec une icône dans la barre du
+  haut : état, afficher, tout mettre en pause, quitter), ou quitter. Les téléchargements
   reprennent tout seuls au lancement suivant.
 
 ### Installation (depuis le code, pour l'instant)

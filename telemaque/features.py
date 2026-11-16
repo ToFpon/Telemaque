@@ -22,6 +22,13 @@ class Feature:
 
 
 FEATURES = [
+    Feature("tray", tr("Icône dans la barre du haut"),
+            tr("En arrière-plan, une icône garde Télémaque à portée : état, Afficher, Tout mettre en pause, "
+               "Quitter (extension AppIndicator, présente sur Zorin et Ubuntu)"),
+            "view-app-grid-symbolic"),
+    Feature("delete_torrent", tr("Supprimer le fichier .torrent après l'ajout"),
+            tr("Moins de fichiers qui traînent : Télémaque garde tout ce qu'il faut de son côté"),
+            "user-trash-symbolic", default=False),
     Feature("notify", tr("Prévenir à la fin d'un téléchargement"),
             tr("Une notification du bureau, avec « Ouvrir » et « Afficher dans le dossier »"),
             "preferences-system-notifications-symbolic"),

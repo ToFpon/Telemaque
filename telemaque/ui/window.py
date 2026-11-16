@@ -14,7 +14,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
 
-from .. import APP_ID, APP_NAME, format as fmt  # noqa: E402
+from .. import APP_ID, APP_NAME, features, format as fmt  # noqa: E402
 from ..backend import engine as eng  # noqa: E402
 from ..i18n import ntr, tr  # noqa: E402
 from ..settings import settings  # noqa: E402
@@ -341,7 +341,8 @@ class MainWindow(Adw.ApplicationWindow):
         """Appelé par le dialogue d'ajout."""
         try:
             if torrent_path:
-                self.app.engine.add_torrent_file(torrent_path, save_path, wanted=wanted, paused=paused)
+                self.app.engine.add_torrent_file(torrent_path, save_path, wanted=wanted, paused=paused,
+                                                 delete_source=features.enabled("delete_torrent"))
             else:
                 self.app.engine.add_magnet(magnet, save_path, paused=paused)
         except eng.Duplicate:

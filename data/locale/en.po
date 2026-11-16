@@ -12,44 +12,67 @@ msgstr ""
 msgid "Afficher la version"
 msgstr "Show the version"
 
-#: telemaque/app.py:192
+#: telemaque/app.py:200
 msgid "Téléchargement terminé"
 msgstr "Download finished"
 
-#: telemaque/app.py:197 telemaque/ui/window.py:89
+#: telemaque/app.py:205 telemaque/ui/window.py:89
 msgid "Ouvrir"
 msgstr "Open"
 
-#: telemaque/app.py:198 telemaque/ui/window.py:90
+#: telemaque/app.py:206 telemaque/ui/window.py:90
 msgid "Afficher dans le dossier"
 msgstr "Show in Folder"
 
-#: telemaque/app.py:251
+#: telemaque/app.py:261
 msgid "Moteur"
 msgstr "Engine"
 
-#: telemaque/app.py:128
+#: telemaque/app.py:129
 msgid "Téléchargement en cours"
 msgstr "Download in progress"
 
-#: telemaque/app.py:247
+#: telemaque/app.py:257
 msgid "Un client BitTorrent tout simple pour GNOME."
 msgstr "A simple BitTorrent client for GNOME."
 
 #: telemaque/features.py:25
+msgid "Icône dans la barre du haut"
+msgstr "Icon in the top bar"
+
+#: telemaque/features.py:26
+msgid ""
+"En arrière-plan, une icône garde Télémaque à portée : état, Afficher, Tout "
+"mettre en pause, Quitter (extension AppIndicator, présente sur Zorin et "
+"Ubuntu)"
+msgstr ""
+"In the background, an icon keeps Télémaque at hand: status, Show, Pause All, "
+"Quit (AppIndicator extension, present on Zorin and Ubuntu)"
+
+#: telemaque/features.py:29
+msgid "Supprimer le fichier .torrent après l'ajout"
+msgstr "Delete the .torrent file after adding it"
+
+#: telemaque/features.py:30
+msgid ""
+"Moins de fichiers qui traînent : Télémaque garde tout ce qu'il faut de son "
+"côté"
+msgstr "Fewer leftover files: Télémaque keeps everything it needs on its side"
+
+#: telemaque/features.py:32
 msgid "Prévenir à la fin d'un téléchargement"
 msgstr "Notify when a download is finished"
 
-#: telemaque/features.py:26
+#: telemaque/features.py:33
 msgid ""
 "Une notification du bureau, avec « Ouvrir » et « Afficher dans le dossier »"
 msgstr "A desktop notification, with “Open” and “Show in Folder”"
 
-#: telemaque/features.py:28
+#: telemaque/features.py:35
 msgid "Empêcher la mise en veille"
 msgstr "Prevent suspend"
 
-#: telemaque/features.py:29
+#: telemaque/features.py:36
 msgid ""
 "L'ordinateur ne se met pas en veille tant qu'un téléchargement est en cours"
 msgstr "The computer does not suspend while a download is in progress"
@@ -94,12 +117,43 @@ msgstr "{0} min"
 msgid "{0} h {1:02d}"
 msgstr "{0} h {1:02d}"
 
+#: telemaque/tray.py:98 telemaque/ui/window.py:386
+msgid "Rien en cours"
+msgstr "Nothing in Progress"
+
+#: telemaque/tray.py:97
+msgid "En partage — ↑ {0}"
+msgstr "Sharing — ↑ {0}"
+
+#: telemaque/tray.py:94
+msgid "{0} téléchargement en cours"
+msgid_plural "{0} téléchargements en cours"
+msgstr[0] "{0} download in progress"
+msgstr[1] "{0} downloads in progress"
+
+#: telemaque/tray.py:199
+msgid "Afficher Télémaque"
+msgstr "Show Télémaque"
+
+#: telemaque/tray.py:200
+msgid "Tout mettre en pause"
+msgstr "Pause All"
+
+#: telemaque/tray.py:202
+msgid "Tout reprendre"
+msgstr "Resume All"
+
+#: telemaque/tray.py:204 telemaque/ui/preferences.py:67
+#: telemaque/ui/window.py:169 telemaque/ui/window.py:499
+msgid "Quitter"
+msgstr "Quit"
+
 #: telemaque/ui/common.py:366
 msgid "Parcourir…"
 msgstr "Browse…"
 
 #: telemaque/ui/common.py:378 telemaque/ui/dialogs.py:179
-#: telemaque/ui/window.py:464 telemaque/ui/window.py:498
+#: telemaque/ui/window.py:465 telemaque/ui/window.py:499
 msgid "Annuler"
 msgstr "Cancel"
 
@@ -309,14 +363,9 @@ msgstr ""
 msgid "Demander"
 msgstr "Ask"
 
-#: telemaque/ui/preferences.py:67 telemaque/ui/window.py:499
+#: telemaque/ui/preferences.py:67 telemaque/ui/window.py:500
 msgid "Continuer en arrière-plan"
 msgstr "Keep Running in the Background"
-
-#: telemaque/ui/preferences.py:67 telemaque/ui/window.py:169
-#: telemaque/ui/window.py:498
-msgid "Quitter"
-msgstr "Quit"
 
 #: telemaque/ui/preferences.py:109
 msgid "Ouvert sur la box automatiquement quand elle le permet (UPnP)"
@@ -358,15 +407,15 @@ msgstr "About Télémaque"
 msgid "Ouvrir des fichiers torrent"
 msgstr "Open Torrent Files"
 
-#: telemaque/ui/window.py:463
+#: telemaque/ui/window.py:464
 msgid "« Retirer de la liste » garde les fichiers déjà téléchargés."
 msgstr "“Remove from List” keeps the files already downloaded."
 
-#: telemaque/ui/window.py:495
+#: telemaque/ui/window.py:496
 msgid "Continuer en arrière-plan ?"
 msgstr "Keep running in the background?"
 
-#: telemaque/ui/window.py:496
+#: telemaque/ui/window.py:497
 msgid ""
 "Télémaque peut continuer à télécharger et à partager sans fenêtre. Relancez-"
 "le pour la retrouver."
@@ -438,11 +487,11 @@ msgstr "Open a Torrent File…"
 msgid "Ajouter un lien magnet…"
 msgstr "Add a Magnet Link…"
 
-#: telemaque/ui/window.py:432 telemaque/ui/window.py:439
+#: telemaque/ui/window.py:433 telemaque/ui/window.py:440
 msgid "Les fichiers ne sont plus là"
 msgstr "The files are no longer there"
 
-#: telemaque/ui/window.py:484
+#: telemaque/ui/window.py:485
 msgid "Ne plus demander"
 msgstr "Don't ask again"
 
@@ -466,15 +515,15 @@ msgstr "This file is not a valid torrent"
 msgid "Ce lien magnet n'est pas valide"
 msgstr "This magnet link is not valid"
 
-#: telemaque/ui/window.py:348
+#: telemaque/ui/window.py:349
 msgid "Déjà dans la liste"
 msgstr "Already in the list"
 
-#: telemaque/ui/window.py:350
+#: telemaque/ui/window.py:351
 msgid "Impossible d'ajouter ce torrent"
 msgstr "This torrent cannot be added"
 
-#: telemaque/ui/window.py:462
+#: telemaque/ui/window.py:463
 msgid "Supprimer « {0} » ?"
 msgstr "Remove “{0}”?"
 
@@ -494,15 +543,15 @@ msgstr "All files"
 msgid "« {0} » est déjà dans la liste"
 msgstr "“{0}” is already in the list"
 
-#: telemaque/ui/window.py:376
+#: telemaque/ui/window.py:377
 msgid "↓ {0} · ↑ {1}"
 msgstr "↓ {0} · ↑ {1}"
 
-#: telemaque/ui/window.py:464
+#: telemaque/ui/window.py:465
 msgid "Retirer de la liste"
 msgstr "Remove from List"
 
-#: telemaque/ui/window.py:465
+#: telemaque/ui/window.py:466
 msgid "Supprimer aussi les fichiers"
 msgstr "Delete the Files Too"
 
@@ -512,18 +561,14 @@ msgid_plural "{0} sources"
 msgstr[0] "{0} source"
 msgstr[1] "{0} sources"
 
-#: telemaque/ui/window.py:385
-msgid "Rien en cours"
-msgstr "Nothing in Progress"
-
-#: telemaque/ui/window.py:385
+#: telemaque/ui/window.py:386
 msgid "Tous les téléchargements sont terminés."
 msgstr "All downloads are finished."
 
-#: telemaque/ui/window.py:386
+#: telemaque/ui/window.py:387
 msgid "Aucun téléchargement terminé"
 msgstr "No Finished Downloads"
 
-#: telemaque/ui/window.py:386
+#: telemaque/ui/window.py:387
 msgid "Ils apparaîtront ici une fois complets."
 msgstr "They will show up here once complete."

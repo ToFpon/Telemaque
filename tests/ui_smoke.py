@@ -357,6 +357,27 @@ def supprimer(win):
 
 
 @step
+def supprimer_le_fichier_torrent(win):
+    from telemaque import features
+    extra = samples.make_single(os.path.join(SRC, "x"), "petit.bin", 50_000)
+    seeder.add_torrent_file(samples.make_torrent(extra, os.path.join(TMP, "seed-petit.torrent")), os.path.dirname(extra))
+    copy = os.path.join(TMP, "home", "petit.torrent")
+    shutil.copy(os.path.join(TMP, "seed-petit.torrent"), copy)
+    features.set_enabled("delete_torrent", True)
+    try:
+        win.add_torrent_file(copy)
+        yield pump(0.5)
+        dl = [d for d in dialogs(win) if d.get_title() == tr("Ajouter un torrent")]
+        if dl:
+            press_action_button(dl[0])
+        yield Wait(5, until=lambda: not os.path.exists(copy))
+        check(not os.path.exists(copy), "option : fichier .torrent supprimé après l'ajout")
+        check(by_name("petit.bin") is not None, "le téléchargement, lui, est bien là")
+    finally:
+        features.set_enabled("delete_torrent", False)
+
+
+@step
 def preferences(win):
     app._prefs()
     yield pump(0.4)
@@ -381,9 +402,11 @@ def fermer_en_arriere_plan(win):
         respond(alerts[0], "background")
     yield pump(0.4)
     check(not win.get_visible() and app.window is win, "fenêtre cachée, Télémaque continue")
+    check(app.tray is not None and app.tray.active, "arrière-plan : icône dans la barre du haut")
     app.activate()
     yield pump(0.4)
     check(win.get_visible(), "relancé : la fenêtre revient")
+    check(not app.tray.active, "fenêtre revenue : icône retirée")
 
 
 def on_window(_a, w):

@@ -16,7 +16,7 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   @error_color).
 - Dialogues : de vraies fenêtres (`common.AlertDialog`, `common.DialogWindow`, `Adw.PreferencesWindow`,
   `Adw.AboutWindow`).
-- Chaque fonctionnalité facultative est dans `telemaque/features.py` (notify, inhibit) et se consulte au
+- Chaque fonctionnalité facultative est dans `telemaque/features.py` (tray, delete_torrent, notify, inhibit) et se consulte au
   moment de l'usage.
 - Tout texte visible passe par `tr()` / `ntr()`. Après modification : `python3.12 tools/update-pot.py`,
   compléter `data/locale/en.po` et `de.po`, puis `msgfmt -c --statistics` et `msgcmp`.
@@ -53,6 +53,20 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   « app.show-transfer::<id> » — PyGObject n'a pas `set_default_action_and_target_value`), inhibition de la
   veille pendant un téléchargement, HANDLES_OPEN (fichiers .torrent, URI magnet:), `--version` répondu
   avant GTK. Moteur injectable (`TelemaqueApp(engine=…)`) pour les tests.
+- Icône de la barre du haut (`telemaque/tray.py`, fonctionnalité `tray`, demande de Tof ; REPRISE D'ITHACA,
+  `backend/tray.py`) : StatusNotifierItem + com.canonical.dbusmenu écrits à la main (libayatana-appindicator
+  est en GTK 3), enregistrés auprès de org.kde.StatusNotifierWatcher (extension AppIndicator de Zorin /
+  Ubuntu ; sans elle, rien ne s'affiche, rien ne casse). Montrée en arrière-plan (`hide_to_background`),
+  retirée quand la fenêtre revient ou qu'on quitte. Menu : état (« 2 téléchargements en cours — ↓ … »),
+  Afficher Télémaque, Tout mettre en pause / Tout reprendre (`Engine.pause_all` / `resume_all` : marque
+  `paused_all`, « reprendre » relance ceux-là et les téléchargements en pause, pas les partages arrêtés par
+  la règle), Quitter ; clic sur l'icône = fenêtre. Republié seulement si le menu change (relecture chaque
+  seconde). Pièges d'Ithaca gardés : `hicolor/index.theme` dans data/icons (sinon « ••• »), `menu_label`
+  (l'extension avale le premier « _ »). Testé : `test_tray.py` (fausse barre, sous dbus-run-session).
+- Supprimer le fichier .torrent après l'ajout (fonctionnalité `delete_torrent`, COUPÉE par défaut, demande de
+  Tof) : `add_torrent_file(delete_source=True)` → noté dans `state.json`, fichier effacé seulement une fois
+  les données de reprise ÉCRITES et contenant le torrent (`_delete_source`) : un plantage juste après l'ajout
+  ne perd rien. Jamais un lien, jamais dans le dossier d'état. Testé : `ExtrasTest`, ui_smoke.
 - Barre latérale (idée de Tof) : Adw.OverlaySplitView, vues Tous / En cours (pas complets, pause comprise) /
   Terminés (complets) avec leur nombre (`FILTERS`, `matches`), filtre du Gtk.ListBox relancé à chaque relecture
   (un téléchargement fini change de vue), page vide propre à la vue (`none`), titre du contenu = la vue,
@@ -71,11 +85,13 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
 
 ```sh
 python3.12 -m unittest discover -s tests            # moteur : vrais échanges entre deux moteurs locaux
+dbus-run-session -- python3.12 -m unittest discover -s tests -p "test_tray.py"   # icône de la barre
 xvfb-run -a -s "-screen 0 1280x900x24" python3.12 tests/ui_smoke.py   # doit finir par « Aucune erreur. »
 LANGUAGE=en … ; LANGUAGE=de …
 python3 -m pyflakes telemaque tests tools
 ```
 
+Une fois (sur une dizaine de passages), 5 échecs du moteur non reproduits ensuite : à surveiller (ports ?).
 `tests/samples.py` : contenus aléatoires, `make_torrent` (sans tracker), `make_evil_torrent` (bencode à la
 main). ui_smoke : un moteur « partageur » dans le même processus, reliés par `connect_peer` ; notifications
 interceptées (`app.send_notification`). PIÈGE de test : juste après `set_wanted`, l'état de libtorrent est

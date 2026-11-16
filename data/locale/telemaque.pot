@@ -11,43 +11,59 @@ msgstr ""
 msgid "Afficher la version"
 msgstr ""
 
-#: telemaque/app.py:192
+#: telemaque/app.py:200
 msgid "Téléchargement terminé"
 msgstr ""
 
-#: telemaque/app.py:197 telemaque/ui/window.py:89
+#: telemaque/app.py:205 telemaque/ui/window.py:89
 msgid "Ouvrir"
 msgstr ""
 
-#: telemaque/app.py:198 telemaque/ui/window.py:90
+#: telemaque/app.py:206 telemaque/ui/window.py:90
 msgid "Afficher dans le dossier"
 msgstr ""
 
-#: telemaque/app.py:251
+#: telemaque/app.py:261
 msgid "Moteur"
 msgstr ""
 
-#: telemaque/app.py:128
+#: telemaque/app.py:129
 msgid "Téléchargement en cours"
 msgstr ""
 
-#: telemaque/app.py:247
+#: telemaque/app.py:257
 msgid "Un client BitTorrent tout simple pour GNOME."
 msgstr ""
 
 #: telemaque/features.py:25
-msgid "Prévenir à la fin d'un téléchargement"
+msgid "Icône dans la barre du haut"
 msgstr ""
 
 #: telemaque/features.py:26
-msgid "Une notification du bureau, avec « Ouvrir » et « Afficher dans le dossier »"
-msgstr ""
-
-#: telemaque/features.py:28
-msgid "Empêcher la mise en veille"
+msgid "En arrière-plan, une icône garde Télémaque à portée : état, Afficher, Tout mettre en pause, Quitter (extension AppIndicator, présente sur Zorin et Ubuntu)"
 msgstr ""
 
 #: telemaque/features.py:29
+msgid "Supprimer le fichier .torrent après l'ajout"
+msgstr ""
+
+#: telemaque/features.py:30
+msgid "Moins de fichiers qui traînent : Télémaque garde tout ce qu'il faut de son côté"
+msgstr ""
+
+#: telemaque/features.py:32
+msgid "Prévenir à la fin d'un téléchargement"
+msgstr ""
+
+#: telemaque/features.py:33
+msgid "Une notification du bureau, avec « Ouvrir » et « Afficher dans le dossier »"
+msgstr ""
+
+#: telemaque/features.py:35
+msgid "Empêcher la mise en veille"
+msgstr ""
+
+#: telemaque/features.py:36
 msgid "L'ordinateur ne se met pas en veille tant qu'un téléchargement est en cours"
 msgstr ""
 
@@ -91,11 +107,41 @@ msgstr ""
 msgid "{0} h {1:02d}"
 msgstr ""
 
+#: telemaque/tray.py:98 telemaque/ui/window.py:386
+msgid "Rien en cours"
+msgstr ""
+
+#: telemaque/tray.py:97
+msgid "En partage — ↑ {0}"
+msgstr ""
+
+#: telemaque/tray.py:94
+msgid "{0} téléchargement en cours"
+msgid_plural "{0} téléchargements en cours"
+msgstr[0] ""
+msgstr[1] ""
+
+#: telemaque/tray.py:199
+msgid "Afficher Télémaque"
+msgstr ""
+
+#: telemaque/tray.py:200
+msgid "Tout mettre en pause"
+msgstr ""
+
+#: telemaque/tray.py:202
+msgid "Tout reprendre"
+msgstr ""
+
+#: telemaque/tray.py:204 telemaque/ui/preferences.py:67 telemaque/ui/window.py:169 telemaque/ui/window.py:499
+msgid "Quitter"
+msgstr ""
+
 #: telemaque/ui/common.py:366
 msgid "Parcourir…"
 msgstr ""
 
-#: telemaque/ui/common.py:378 telemaque/ui/dialogs.py:179 telemaque/ui/window.py:464 telemaque/ui/window.py:498
+#: telemaque/ui/common.py:378 telemaque/ui/dialogs.py:179 telemaque/ui/window.py:465 telemaque/ui/window.py:499
 msgid "Annuler"
 msgstr ""
 
@@ -297,12 +343,8 @@ msgstr ""
 msgid "Demander"
 msgstr ""
 
-#: telemaque/ui/preferences.py:67 telemaque/ui/window.py:499
+#: telemaque/ui/preferences.py:67 telemaque/ui/window.py:500
 msgid "Continuer en arrière-plan"
-msgstr ""
-
-#: telemaque/ui/preferences.py:67 telemaque/ui/window.py:169 telemaque/ui/window.py:498
-msgid "Quitter"
 msgstr ""
 
 #: telemaque/ui/preferences.py:109
@@ -345,15 +387,15 @@ msgstr ""
 msgid "Ouvrir des fichiers torrent"
 msgstr ""
 
-#: telemaque/ui/window.py:463
+#: telemaque/ui/window.py:464
 msgid "« Retirer de la liste » garde les fichiers déjà téléchargés."
 msgstr ""
 
-#: telemaque/ui/window.py:495
+#: telemaque/ui/window.py:496
 msgid "Continuer en arrière-plan ?"
 msgstr ""
 
-#: telemaque/ui/window.py:496
+#: telemaque/ui/window.py:497
 msgid "Télémaque peut continuer à télécharger et à partager sans fenêtre. Relancez-le pour la retrouver."
 msgstr ""
 
@@ -417,11 +459,11 @@ msgstr ""
 msgid "Ajouter un lien magnet…"
 msgstr ""
 
-#: telemaque/ui/window.py:432 telemaque/ui/window.py:439
+#: telemaque/ui/window.py:433 telemaque/ui/window.py:440
 msgid "Les fichiers ne sont plus là"
 msgstr ""
 
-#: telemaque/ui/window.py:484
+#: telemaque/ui/window.py:485
 msgid "Ne plus demander"
 msgstr ""
 
@@ -445,15 +487,15 @@ msgstr ""
 msgid "Ce lien magnet n'est pas valide"
 msgstr ""
 
-#: telemaque/ui/window.py:348
+#: telemaque/ui/window.py:349
 msgid "Déjà dans la liste"
 msgstr ""
 
-#: telemaque/ui/window.py:350
+#: telemaque/ui/window.py:351
 msgid "Impossible d'ajouter ce torrent"
 msgstr ""
 
-#: telemaque/ui/window.py:462
+#: telemaque/ui/window.py:463
 msgid "Supprimer « {0} » ?"
 msgstr ""
 
@@ -473,15 +515,15 @@ msgstr ""
 msgid "« {0} » est déjà dans la liste"
 msgstr ""
 
-#: telemaque/ui/window.py:376
+#: telemaque/ui/window.py:377
 msgid "↓ {0} · ↑ {1}"
 msgstr ""
 
-#: telemaque/ui/window.py:464
+#: telemaque/ui/window.py:465
 msgid "Retirer de la liste"
 msgstr ""
 
-#: telemaque/ui/window.py:465
+#: telemaque/ui/window.py:466
 msgid "Supprimer aussi les fichiers"
 msgstr ""
 
@@ -491,18 +533,14 @@ msgid_plural "{0} sources"
 msgstr[0] ""
 msgstr[1] ""
 
-#: telemaque/ui/window.py:385
-msgid "Rien en cours"
-msgstr ""
-
-#: telemaque/ui/window.py:385
+#: telemaque/ui/window.py:386
 msgid "Tous les téléchargements sont terminés."
 msgstr ""
 
-#: telemaque/ui/window.py:386
+#: telemaque/ui/window.py:387
 msgid "Aucun téléchargement terminé"
 msgstr ""
 
-#: telemaque/ui/window.py:386
+#: telemaque/ui/window.py:387
 msgid "Ils apparaîtront ici une fois complets."
 msgstr ""

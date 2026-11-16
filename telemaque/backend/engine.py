@@ -187,8 +187,10 @@ class Engine:
         return params
 
     def add_torrent_file(self, path: str, save_path: str, wanted: Optional[list] = None,
-                         paused: bool = False) -> str:
-        """wanted : indices des fichiers à télécharger (None : tous)."""
+                         paused: bool = False, delete_source: bool = False) -> str:
+        """wanted : indices des fichiers à télécharger (None : tous). delete_source : le fichier .torrent
+        est supprimé une fois ses données de reprise ÉCRITES (elles contiennent tout le torrent) — un
+        plantage juste après l'ajout ne fait rien perdre."""
         try:
             ti = lt.torrent_info(path)
         except (RuntimeError, ValueError, OSError) as e:
@@ -201,7 +203,10 @@ class Engine:
         if wanted is not None:
             keep = set(wanted)
             params.file_priorities = [4 if i in keep else 0 for i in range(ti.num_files())]
-        return self._add(tid, self._add_params(params, save_path, paused))
+        meta = {"added": time.time()}
+        if delete_source and path.lower().endswith(".torrent"):
+            meta["delete_source"] = os.path.abspath(path)
+        return self._add(tid, self._add_params(params, save_path, paused), meta)
 
     def add_magnet(self, uri: str, save_path: str, paused: bool = False) -> str:
         try:
@@ -240,6 +245,7 @@ class Engine:
         if h is None:
             return
         m = self.meta.setdefault(tid, {})
+        m.pop("paused_all", None)
         if m.pop("seed_stopped", False):
             m["seed_forever"] = True            # relancé à la main après l'arrêt du partage
             self._save_meta()
@@ -247,6 +253,29 @@ class Engine:
         h.resume()
         self._find_sources(h)
         self._request_save(tid)
+
+    def pause_all(self):
+        """Tout ce qui tourne passe en pause ; « Tout reprendre » relancera exactement ceux-là (et les
+        téléchargements en pause), pas ceux dont le partage était déjà terminé."""
+        for tid, h in self.handles.items():
+            if not h.status().flags & lt.torrent_flags.paused:
+                self.meta.setdefault(tid, {})["paused_all"] = True
+                self.pause(tid)
+        self._save_meta()
+
+    def paused_all(self, tid: str) -> bool:
+        return bool(self.meta.get(tid, {}).get("paused_all"))
+
+    def resume_all(self):
+        for t in self.transfers():
+            if t.state == "paused" or (t.state == "done" and self.paused_all(t.tid)):
+                self.meta.get(t.tid, {}).pop("paused_all", None)
+                h = self.handles[t.tid]
+                h.clear_error()
+                h.resume()
+                self._find_sources(h)
+                self._request_save(t.tid)
+        self._save_meta()
 
     def remove(self, tid: str, delete_files: bool = False):
         h = self.handles.pop(tid, None)
@@ -406,6 +435,7 @@ class Engine:
                 if tid is not None:
                     self._write_resume(tid, a.params)
                     self._pending_saves.discard(tid)
+                    self._delete_source(tid, a.params)
             elif isinstance(a, lt.save_resume_data_failed_alert):
                 self._pending_saves.discard(self._find(a.handle) or "")
             elif isinstance(a, lt.torrent_finished_alert):
@@ -444,6 +474,23 @@ class Engine:
     def _write_resume(self, tid: str, params):
         data = lt.write_resume_data_buf(params)
         _write_atomic(self._resume_path(tid), bytes(data))
+
+    def _delete_source(self, tid: str, params):
+        """Fichier .torrent d'origine supprimé une fois les données de reprise écrites, et seulement si
+        elles contiennent bien le torrent (dictionnaire d'informations)."""
+        m = self.meta.get(tid, {})
+        src = m.get("delete_source")
+        if not src or params.ti is None:
+            return
+        m.pop("delete_source", None)
+        self._save_meta()
+        if os.path.dirname(os.path.abspath(src)) == os.path.abspath(self.state_dir):
+            return
+        try:
+            if os.path.isfile(src) and not os.path.islink(src):
+                os.remove(src)
+        except OSError as e:
+            self.errors.append(f"{src} : {e}")
 
     def _save_meta(self):
         _write_atomic(os.path.join(self.state_dir, "state.json"),

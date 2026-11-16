@@ -216,6 +216,51 @@ class ControlTest(Base):
         self.assertGreaterEqual(mid.transfer(tid).ratio, 0.5)
 
 
+class ExtrasTest(Base):
+    def test_delete_source_after_resume_written(self):
+        """« Supprimer le fichier .torrent après l'ajout » : effacé une fois les données de reprise écrites,
+        et le téléchargement survit à un redémarrage sans lui."""
+        copy = os.path.join(self.dir, "à supprimer.torrent")
+        shutil.copy(self.torrent, copy)
+        state = os.path.join(self.dir, "state-del")
+        e = Engine(state, listen_port=port(), local_only=True)
+        self.engines.append(e)
+        tid = e.add_torrent_file(copy, self.dst, delete_source=True)
+        self.assertTrue(until(self.engines, lambda: not os.path.exists(copy), 5), "fichier .torrent supprimé")
+        self.assertTrue(os.path.exists(os.path.join(state, tid + ".resume")))
+        self.assertTrue(os.path.exists(self.torrent), "seul le fichier ajouté est supprimé")
+        e.shutdown()
+        e2 = Engine(state, listen_port=port(), local_only=True)
+        self.engines.append(e2)
+        self.assertEqual(e2.transfer(tid).name, "Série")
+        e2.connect_peer(tid, "127.0.0.1", self.seed_port)
+        self.assertTrue(until(self.engines, lambda: e2.transfer(tid).complete))
+        # sans l'option : le fichier reste
+        keep = os.path.join(self.dir, "garder.torrent")
+        single = samples.make_torrent(samples.make_single(os.path.join(self.dir, "s")), keep)
+        e2.add_torrent_file(single, self.dst)
+        until(self.engines, lambda: False, 1.5)
+        self.assertTrue(os.path.exists(keep))
+
+    def test_pause_all_resume_all(self):
+        e = self.leecher()
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).state == "seeding"))
+        other = samples.make_torrent(samples.make_single(os.path.join(self.dir, "s2")), os.path.join(self.dir, "o.torrent"))
+        tid2 = e.add_torrent_file(other, self.dst, paused=True)      # déjà en pause avant
+        e.pause_all()
+        e.poll()
+        self.assertEqual(e.transfer(tid).state, "done")
+        self.assertTrue(e.paused_all(tid))
+        e.resume_all()
+        e.poll()
+        self.assertEqual(e.transfer(tid).state, "seeding", "le partage reprend")
+        self.assertIn(e.transfer(tid2).state, ("metadata", "checking", "downloading"),
+                      "un téléchargement en pause reprend aussi")
+        self.assertFalse(e.paused_all(tid))
+
+
 class PersistTest(Base):
     def test_restart(self):
         """Fermé en plein téléchargement puis relancé : la liste revient, la pause aussi, et le
