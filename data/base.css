@@ -3,3 +3,4 @@
 row.paused .transfer-progress progress { opacity: 0.45; }
 row.error .transfer-progress progress { background-color: @error_color; }
 row.complete .transfer-progress progress { background-color: @success_color; }
+.telemaque-status { padding: 4px 12px; border-top: 1px solid alpha(currentColor, 0.1); }

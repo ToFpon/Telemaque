@@ -330,6 +330,26 @@ def barre_laterale(win):
 
 
 @step
+def barre_d_etat(win):
+    from telemaque.backend.engine import NetInfo
+    from telemaque.ui.window import dht_text, ip_text
+    check(win.dht_label.get_label() == tr("DHT : désactivé"), "barre d'état : DHT désactivé (moteur de test)")
+    check(win.ip_label.get_label().startswith(tr("IP publique : pas encore connue")), "barre d'état : IP")
+    n = NetInfo(external_ip="82.65.1.2", local_ips=["192.168.1.20"], port=6881, reachable=True,
+                dht_enabled=True, dht_nodes=342)
+    check(ip_text(n) == " · ".join([tr("IP publique : {0}").format("82.65.1.2"), tr("locale : {0}").format("192.168.1.20"),
+                                    tr("port {0}").format(6881) + " " + tr("(joignable)")]), "IP publique, locale, port joignable")
+    from telemaque.i18n import ntr
+    check(dht_text(n) == ntr("DHT : actif, {0} nœud", "DHT : actif, {0} nœuds", 342).format(342),
+          "DHT actif, nombre de nœuds")
+    n.dht_nodes = 0
+    check(dht_text(n) == tr("DHT : connexion…"), "DHT sans nœud : connexion")
+    n.listen_error = "Address already in use"
+    check("Address already in use" in ip_text(n), "port indisponible : signalé")
+    yield pump(0.1)
+
+
+@step
 def textes_d_etat(win):
     from telemaque.backend.engine import Transfer
     t = Transfer("x", "x", "downloading", 0.5, 2_000_000_000, 1_000_000_000, down_rate=2_100_000, eta=725, peers=4)

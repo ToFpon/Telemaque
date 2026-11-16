@@ -56,6 +56,18 @@ class TorrentInfo:
 
 
 @dataclass
+class NetInfo:
+    """Barre d'état : par où passe Télémaque (utile derrière un VPN) et si le DHT travaille."""
+    external_ip: str = ""         # adresse publique vue par les trackers / le DHT ("" : pas encore connue)
+    local_ips: list = field(default_factory=list)
+    port: int = 0
+    reachable: bool = False       # des connexions entrantes arrivent : le port est ouvert
+    dht_enabled: bool = False
+    dht_nodes: int = 0            # nœuds DHT connus : 0 avec le DHT actif = il se connecte
+    listen_error: str = ""
+
+
+@dataclass
 class Transfer:
     """État d'un téléchargement à un instant (tout ce qu'affiche une ligne de la liste)."""
     tid: str
@@ -158,6 +170,11 @@ class Engine:
         self.on_finished: Optional[Callable[[str], None]] = None     # fin d'un téléchargement (une fois)
         self.on_changed: Optional[Callable[[], None]] = None         # liste changée (ajout, retrait, métadonnées)
         self.errors: list[str] = []
+        self.dht_enabled = bool(pack["enable_dht"])
+        self.external_ip = ""
+        self.local_ips: list[str] = []
+        self.listen_error = ""
+        self.stats: dict = {}
         self._load()
 
     # -- réglages ------------------------------------------------------------------------------
@@ -170,6 +187,8 @@ class Engine:
             return
         self.session.apply_settings({"listen_interfaces": f"0.0.0.0:{listen_port},[::]:{listen_port}",
                                      "enable_dht": bool(dht)})
+        self.dht_enabled = bool(dht)
+        self.local_ips, self.listen_error = [], ""
 
     def listen_port(self) -> int:
         return self.session.listen_port()
@@ -392,7 +411,15 @@ class Engine:
                         has_metadata=st.has_metadata, complete=complete)
 
     # -- boucle --------------------------------------------------------------------------------
+    def network(self) -> NetInfo:
+        st = self.stats
+        return NetInfo(external_ip=self.external_ip, local_ips=list(self.local_ips), port=self.listen_port(),
+                       reachable=bool(st.get("net.has_incoming_connections", 0)),
+                       dht_enabled=self.dht_enabled, dht_nodes=int(st.get("dht.dht_nodes", 0)),
+                       listen_error=self.listen_error)
+
     def poll(self) -> list:
+        self.session.post_session_stats()              # nœuds DHT, connexions entrantes (alerte suivante)
         self._handle_alerts()
         for tid, h in list(self.handles.items()):
             self._apply_seed_policy(tid, h)
@@ -457,6 +484,19 @@ class Engine:
                     self._request_save(tid)
                     if self.on_changed:
                         self.on_changed()
+            elif isinstance(a, lt.session_stats_alert):
+                values = a.values
+                if isinstance(values, dict):
+                    self.stats = values
+            elif isinstance(a, lt.external_ip_alert):
+                self.external_ip = str(a.external_address)
+            elif isinstance(a, lt.listen_succeeded_alert):
+                ip = str(a.address)
+                if ip not in ("127.0.0.1", "::1") and ip not in self.local_ips:
+                    self.local_ips.append(ip)
+                self.listen_error = ""
+            elif isinstance(a, lt.listen_failed_alert):
+                self.listen_error = a.message()
             elif isinstance(a, (lt.torrent_error_alert, lt.file_error_alert)):
                 self.errors.append(a.message())
 

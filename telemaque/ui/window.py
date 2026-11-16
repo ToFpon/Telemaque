@@ -61,6 +61,29 @@ def matches(filter_id: str, t) -> bool:
     return True
 
 
+def ip_text(n) -> str:
+    """« IP publique : 82.65.1.2 · locale : 192.168.1.20 · port 6881 (joignable) »."""
+    if n.listen_error:
+        return tr("Port {0} indisponible : {1}").format(n.port, n.listen_error)
+    parts = [tr("IP publique : {0}").format(n.external_ip) if n.external_ip
+             else tr("IP publique : pas encore connue")]
+    if n.local_ips:
+        parts.append(tr("locale : {0}").format(", ".join(n.local_ips)))
+    port = tr("port {0}").format(n.port)
+    if n.reachable:
+        port += " " + tr("(joignable)")
+    parts.append(port)
+    return " · ".join(parts)
+
+
+def dht_text(n) -> str:
+    if not n.dht_enabled:
+        return tr("DHT : désactivé")
+    if n.dht_nodes <= 0:
+        return tr("DHT : connexion…")
+    return ntr("DHT : actif, {0} nœud", "DHT : actif, {0} nœuds", n.dht_nodes).format(n.dht_nodes)
+
+
 def _ratio(r: float) -> str:
     from ..i18n import decimal
     return decimal(r, 2 if r < 10 else 1)
@@ -195,6 +218,21 @@ class MainWindow(Adw.ApplicationWindow):
         self.none = Adw.StatusPage(icon_name=APP_ID + "-symbolic")
         self.stack.add_named(self.none, "none")
         tv.set_content(self.stack)
+        # barre d'état : par où passe Télémaque (VPN ?) et si le DHT travaille
+        status = Gtk.Box(spacing=12, css_classes=["telemaque-status"])
+        self.ip_label = Gtk.Label(xalign=0, hexpand=True, ellipsize=3, selectable=False,
+                                  css_classes=["dim-label", "caption", "numeric"],
+                                  tooltip_text=tr("Adresse publique : celle que voient les autres (celle du VPN, "
+                                                  "s'il y en a un). « Joignable » : des connexions entrantes "
+                                                  "arrivent, le port est ouvert."))
+        self.dht_icon = Gtk.Image(icon_name="network-transmit-receive-symbolic", css_classes=["dim-label"])
+        self.dht_label = Gtk.Label(xalign=1, css_classes=["dim-label", "caption", "numeric"],
+                                   tooltip_text=tr("Le DHT trouve des sources sans tracker ; indispensable aux liens "
+                                                   "magnet. Préférences → Réseau."))
+        status.append(self.ip_label)
+        status.append(self.dht_icon)
+        status.append(self.dht_label)
+        tv.add_bottom_bar(status)
         self.list.set_filter_func(lambda row: matches(self.filter, row.transfer))
 
         # barre latérale : Tous / En cours / Terminés, avec leur nombre
@@ -377,6 +415,17 @@ class MainWindow(Adw.ApplicationWindow):
         self.title_widget.set_subtitle(tr("↓ {0} · ↑ {1}").format(fmt.speed(down), fmt.speed(up)) if active else "")
         for tid, d in list(self.files_dialogs.items()):
             d.refresh()
+        self._sync_network()
+
+    def _sync_network(self):
+        n = self.app.engine.network() if self.app.engine is not None else None
+        if n is None:
+            return
+        self.ip_label.set_label(ip_text(n))
+        (self.ip_label.add_css_class if n.listen_error else self.ip_label.remove_css_class)("error")
+        self.dht_label.set_label(dht_text(n))
+        self.dht_icon.set_from_icon_name("network-transmit-receive-symbolic" if n.dht_enabled and n.dht_nodes
+                                         else "network-offline-symbolic")
 
     def _sync_page(self):
         transfers = getattr(self, "transfers", [])
