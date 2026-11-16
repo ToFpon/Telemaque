@@ -1,0 +1,89 @@
+# Télémaque — notes de travail
+
+Client BitTorrent GTK4 / libadwaita en Python sur libtorrent (python3-libtorrent 2.0, le moteur de
+qBittorrent et Deluge), dans la famille d'Odysseus, Nausicaa et Calypso (même ossature : i18n, réglages,
+fonctionnalités, vrais dialogues, tests). Idée de Tof : qBittorrent et Varia sont en Flatpak (ou Qt) ;
+ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « télé-charger ».
+
+## Règles
+
+- Répondre à Tof en français, tutoiement, avis francs. Messages de commit en français.
+- Cible : Zorin OS 18.1 (Ubuntu 24.04, GNOME 46, X11, GTK 4.14, libadwaita 1.5, python3-libtorrent
+  2.0.10, Python 3.12). Pas d'API plus récente (pas d'Adw.Dialog, Adw.AlertDialog…). Paquets apt seulement.
+- PÉRIMÈTRE (choix de Tof) : du torrent de base, rien d'autre — pas de yt-dlp, pas de HTTP, pas de RSS, pas
+  de moteur de recherche, pas de planificateur. Proposer un ajout seulement s'il sert ce périmètre.
+- Thème GTK du système : `data/base.css` ne fait que de la mise en page (couleurs du thème : @success_color,
+  @error_color).
+- Dialogues : de vraies fenêtres (`common.AlertDialog`, `common.DialogWindow`, `Adw.PreferencesWindow`,
+  `Adw.AboutWindow`).
+- Chaque fonctionnalité facultative est dans `telemaque/features.py` (notify, inhibit) et se consulte au
+  moment de l'usage.
+- Tout texte visible passe par `tr()` / `ntr()`. Après modification : `python3.12 tools/update-pot.py`,
+  compléter `data/locale/en.po` et `de.po`, puis `msgfmt -c --statistics` et `msgcmp`.
+- Toute fonction passée à `idle_add` / `timeout_add` renvoie False (sauf répétition voulue).
+- Travail directement sur main (accord de Tof).
+
+## Architecture
+
+- `backend/engine.py` (sans GTK) : `Engine` = une `lt.session` + ses téléchargements.
+  - Identité = empreinte v1 (`_tid_of` : `info_hashes().v1`). PIÈGE : libtorrent 2 fabrique des torrents
+    hybrides v1 + v2 ; `info_hash()` d'un torrent_info et l'empreinte d'un lien magnet ne concordaient pas.
+  - Rien en « auto_managed » : pas de file de libtorrent, une pause reste une pause.
+  - `poll()` (une fois par seconde, par l'application) : alertes (données de reprise, fin, métadonnées,
+    erreurs), règle de partage, données de reprise toutes les 60 s pour ceux qui ont changé. Renvoie des
+    `Transfer` (instantanés : état metadata / checking / downloading / seeding / paused / done / error,
+    progression sur les fichiers VOULUS, vitesses, temps restant, ratio).
+  - Vitesses : moyennes glissantes de libtorrent → mises à 0 pour un téléchargement complet ou en pause.
+  - Partage (`seed_policy`) : ratio (envoyé ÷ voulu ≥ `seed_ratio`), always, never ; arrêt = pause +
+    `seed_stopped`. Relancé à la main après coup → `seed_forever`.
+  - Reprise après redémarrage : `<id>.resume` (`write_resume_data_buf`, avec le dictionnaire d'infos :
+    un lien magnet n'a pas à retrouver ses métadonnées) + `state.json` (ordre d'ajout, fin signalée, partage
+    arrêté). `shutdown()` attend les données de reprise (5 s au plus). Fichiers abîmés : ignorés (`errors`).
+  - Fichiers : `files()`, `set_wanted` (priorité 0 / 4). Recoché après la fin : la fin est signalée de
+    nouveau. Coché ou repris : `_find_sources` (force_reannounce + DHT) — un torrent « fini » laisse partir
+    les sources complètes (deux complets n'ont rien à s'échanger).
+  - Noms piégés (« ../ », absolus) : libtorrent les ramène dans le dossier (`piege/evade.txt`), testé.
+  - Limites de vitesse générales : NE S'APPLIQUENT PAS au réseau local (classe de pairs locale de
+    libtorrent, voulu). Tests et captures : `handle.set_download_limit` (limite propre au téléchargement).
+  - `local_only` (tests) : 127.0.0.1, ni DHT / LSD / UPnP, `min_reconnect_time` 1, TCP seulement — en uTP
+    sur la boucle locale, une source quittée n'était jamais recontactée.
+- `app.py` : `TelemaqueApp` garde le moteur et la boucle (`_poll`, protégée : une exception ne doit pas
+  figer la liste pour de bon), une seule fenêtre (`show_window`), arrière-plan (`hide_to_background` :
+  `hold()`, fenêtre cachée, toujours à jour), notifications (Gio.Notification ; actions DÉTAILLÉES
+  « app.show-transfer::<id> » — PyGObject n'a pas `set_default_action_and_target_value`), inhibition de la
+  veille pendant un téléchargement, HANDLES_OPEN (fichiers .torrent, URI magnet:), `--version` répondu
+  avant GTK. Moteur injectable (`TelemaqueApp(engine=…)`) pour les tests.
+- `ui/window.py` : liste (Gtk.ListBox boxed-list dans un Adw.Clamp, `TransferRow` : nom, barre, état,
+  pause / reprise, menu Ouvrir / Afficher dans le dossier / Fichiers… / Supprimer…), accueil
+  (Adw.StatusPage), Ctrl+O / Ctrl+V / glisser, question de fermeture (« Continuer en arrière-plan ? », case
+  « Ne plus demander » → réglage `on_close`), `status_text`.
+- `ui/dialogs.py` : `AddDialog` (dossier, « Ajouter en pause », fichiers à cocher ; lien magnet : pas
+  encore de fichiers), `MagnetEntryDialog` (prérempli depuis le presse-papiers), `FilesDialog` (cocher en
+  cours de route, avancement par fichier). `ui/preferences.py` : Général (dossier, fermeture, partage,
+  vitesse, apparence), Réseau (port, DHT), Fonctionnalités.
+
+## Tests
+
+```sh
+python3.12 -m unittest discover -s tests            # moteur : vrais échanges entre deux moteurs locaux
+xvfb-run -a -s "-screen 0 1280x900x24" python3.12 tests/ui_smoke.py   # doit finir par « Aucune erreur. »
+LANGUAGE=en … ; LANGUAGE=de …
+python3 -m pyflakes telemaque tests tools
+```
+
+`tests/samples.py` : contenus aléatoires, `make_torrent` (sans tracker), `make_evil_torrent` (bencode à la
+main). ui_smoke : un moteur « partageur » dans le même processus, reliés par `connect_peer` ; notifications
+interceptées (`app.send_notification`). PIÈGE de test : juste après `set_wanted`, l'état de libtorrent est
+en retard (« complete » encore vrai) — attendre la taille des fichiers.
+Captures : `LANGUAGE=fr xvfb-run -a -s "-screen 0 1400x1000x24" python3.12 tools/screenshot.py SORTIE.png
+[--dark] [--empty] [--add] [--files] [--prefs=PAGE] [--close]` (faux contenus partagés en local, états
+mis en scène). README : `docs/captures/` en français.
+
+## Feuille de route
+
+1. FAIT (0.1.0, à valider par Tof) : moteur, liste, ajout (.torrent / magnet), fichiers, pause / reprise /
+   suppression, partage au ratio, limites, notifications, arrière-plan, reprise au redémarrage, traductions,
+   installation locale (`install.sh`).
+2. À faire : paquet .deb (`python3-libtorrent` en dépendance), workflow GitHub, PPA (`tools/ppa.sh`, avec le
+   garde-fou « à » en fin de ligne du changelog), site. Vérifier que le nom est libre (Ubuntu 24.04 : aucun
+   paquet / commande « telemaque » ; Debian, resolute, Flathub à vérifier avant de publier).

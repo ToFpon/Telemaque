@@ -1,0 +1,5 @@
+/* Mise en page seulement : les couleurs viennent du thème GTK du système. */
+.transfer-progress trough, .transfer-progress progress { min-height: 6px; border-radius: 3px; }
+row.paused .transfer-progress progress { opacity: 0.45; }
+row.error .transfer-progress progress { background-color: @error_color; }
+row.complete .transfer-progress progress { background-color: @success_color; }

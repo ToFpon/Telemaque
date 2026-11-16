@@ -1,0 +1,496 @@
+"""Moteur BitTorrent de Télémaque : une session libtorrent (celle de qBittorrent et Deluge) et ses
+téléchargements, sans GTK — testable seul (deux moteurs sur la même machine s'échangent un torrent).
+
+- Identité d'un téléchargement : l'empreinte (info-hash v1, en hexadécimal).
+- Tout est hors de la file automatique de libtorrent (pas d'« auto_managed ») : un téléchargement
+  démarré tourne, un téléchargement en pause reste en pause. Simple et prévisible.
+- Reprise après redémarrage : données de reprise de libtorrent (`<id>.resume`, avec le dictionnaire
+  d'informations : un lien magnet n'a pas à retrouver ses métadonnées), plus nos propres notes dans
+  `state.json` (ordre d'ajout, fin déjà signalée, arrêt du partage).
+- Partage : une fois les fichiers voulus complets, s'arrêter au ratio choisi, ne jamais s'arrêter, ou
+  s'arrêter tout de suite. Relancé à la main après coup : partage sans limite (`seed_forever`).
+
+poll() est appelé régulièrement par l'interface (une fois par seconde) : il traite les alertes de
+libtorrent, applique la règle de partage et renvoie l'état de chaque téléchargement.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import time
+from dataclasses import dataclass, field
+from typing import Callable, Optional
+
+import libtorrent as lt
+
+RESUME_EVERY = 60                 # secondes : données de reprise des téléchargements qui ont changé
+
+
+class TorrentError(Exception):
+    """Fichier .torrent illisible, lien magnet invalide…"""
+
+
+class Duplicate(TorrentError):
+    def __init__(self, tid: str):
+        super().__init__(tid)
+        self.tid = tid
+
+
+@dataclass
+class FileEntry:
+    index: int
+    path: str                     # chemin dans le torrent (« Dossier/sous/fichier.mkv »)
+    size: int
+    done: int = 0
+    wanted: bool = True
+
+
+@dataclass
+class TorrentInfo:
+    """Contenu d'un fichier .torrent, pour le dialogue d'ajout (avant de le lancer)."""
+    tid: str
+    name: str
+    size: int
+    files: list = field(default_factory=list)       # FileEntry
+
+
+@dataclass
+class Transfer:
+    """État d'un téléchargement à un instant (tout ce qu'affiche une ligne de la liste)."""
+    tid: str
+    name: str
+    state: str                    # metadata, checking, downloading, seeding, paused, done, error
+    progress: float = 0.0         # 0..1, sur les fichiers voulus
+    size: int = 0                 # octets voulus
+    done: int = 0
+    down_rate: int = 0            # octets / s
+    up_rate: int = 0
+    eta: int = -1                 # secondes, -1 : inconnu
+    peers: int = 0
+    seeds: int = 0
+    ratio: float = 0.0
+    uploaded: int = 0
+    save_path: str = ""
+    error: str = ""
+    has_metadata: bool = True
+    complete: bool = False        # fichiers voulus tous là
+
+    @property
+    def active(self) -> bool:
+        """Quelque chose se passe encore (pour la question « Continuer en arrière-plan ? »)."""
+        return self.state in ("metadata", "checking", "downloading", "seeding")
+
+    @property
+    def downloading(self) -> bool:
+        return self.state in ("metadata", "checking", "downloading")
+
+
+def _tid_of(hashes) -> str:
+    """Identité : l'empreinte v1 si elle existe. Un torrent « hybride » (v1 + v2, ce que fabrique
+    libtorrent 2) n'a pas la même empreinte « au mieux » lue dans le fichier et dans son lien magnet."""
+    if hashes.has_v1():
+        return str(hashes.v1)
+    return str(hashes.get_best())
+
+
+def _is_pad(fs, i: int) -> bool:
+    try:
+        return bool(fs.file_flags(i) & lt.file_storage.flag_pad_file)
+    except AttributeError:
+        return False
+
+
+def read_torrent(path: str) -> TorrentInfo:
+    """Lit un fichier .torrent sans l'ajouter."""
+    try:
+        ti = lt.torrent_info(path)
+    except (RuntimeError, ValueError, OSError) as e:
+        raise TorrentError(str(e)) from e
+    fs = ti.files()
+    files = [FileEntry(i, fs.file_path(i), fs.file_size(i)) for i in range(fs.num_files()) if not _is_pad(fs, i)]
+    return TorrentInfo(_tid_of(ti.info_hashes()), ti.name(), sum(f.size for f in files), files)
+
+
+def magnet_tid(uri: str) -> str:
+    try:
+        params = lt.parse_magnet_uri(uri)
+    except (RuntimeError, ValueError) as e:
+        raise TorrentError(str(e)) from e
+    return _tid_of(params.info_hashes)
+
+
+def is_magnet(text: str) -> bool:
+    return text.strip().lower().startswith("magnet:?")
+
+
+class Engine:
+    def __init__(self, state_dir: str, *, listen_port: int = 6881, dht: bool = True, local_only: bool = False,
+                 seed_policy: str = "ratio", seed_ratio: float = 1.0, down_limit: int = 0, up_limit: int = 0):
+        """local_only : pour les tests — écoute sur 127.0.0.1, ni DHT, ni découverte locale, ni UPnP."""
+        self.state_dir = state_dir
+        os.makedirs(state_dir, exist_ok=True)
+        self.seed_policy = seed_policy
+        self.seed_ratio = seed_ratio
+        self.local_only = local_only
+        pack = {
+            "listen_interfaces": (f"127.0.0.1:{listen_port}" if local_only
+                                  else f"0.0.0.0:{listen_port},[::]:{listen_port}"),
+            "enable_dht": dht and not local_only,
+            "enable_lsd": not local_only,
+            "enable_upnp": not local_only,
+            "enable_natpmp": not local_only,
+            "alert_mask": (lt.alert_category.error | lt.alert_category.status | lt.alert_category.storage),
+            "user_agent": "Telemaque/0.1 libtorrent/" + lt.__version__,
+            "download_rate_limit": max(0, int(down_limit)) * 1024,
+            "upload_rate_limit": max(0, int(up_limit)) * 1024,
+        }
+        if local_only:
+            pack["allow_multiple_connections_per_ip"] = True
+            pack["min_reconnect_time"] = 1     # une seule source : la recontacter tout de suite (60 s sinon)
+            pack["enable_outgoing_utp"] = False
+            pack["enable_incoming_utp"] = False
+        self.session = lt.session(pack)
+        self.handles: dict[str, lt.torrent_handle] = {}
+        self.meta: dict[str, dict] = {}            # nos notes par téléchargement (state.json)
+        self._pending_saves: set[str] = set()
+        self._last_resume = time.monotonic()
+        self.on_finished: Optional[Callable[[str], None]] = None     # fin d'un téléchargement (une fois)
+        self.on_changed: Optional[Callable[[], None]] = None         # liste changée (ajout, retrait, métadonnées)
+        self.errors: list[str] = []
+        self._load()
+
+    # -- réglages ------------------------------------------------------------------------------
+    def set_limits(self, down_kib: int, up_kib: int):
+        self.session.apply_settings({"download_rate_limit": max(0, int(down_kib)) * 1024,
+                                     "upload_rate_limit": max(0, int(up_kib)) * 1024})
+
+    def set_network(self, listen_port: int, dht: bool):
+        if self.local_only:
+            return
+        self.session.apply_settings({"listen_interfaces": f"0.0.0.0:{listen_port},[::]:{listen_port}",
+                                     "enable_dht": bool(dht)})
+
+    def listen_port(self) -> int:
+        return self.session.listen_port()
+
+    # -- ajout ---------------------------------------------------------------------------------
+    def _add_params(self, params, save_path: str, paused: bool):
+        params.save_path = save_path
+        flags = params.flags
+        flags &= ~lt.torrent_flags.auto_managed
+        if paused:
+            flags |= lt.torrent_flags.paused
+        else:
+            flags &= ~lt.torrent_flags.paused
+        params.flags = flags
+        return params
+
+    def add_torrent_file(self, path: str, save_path: str, wanted: Optional[list] = None,
+                         paused: bool = False) -> str:
+        """wanted : indices des fichiers à télécharger (None : tous)."""
+        try:
+            ti = lt.torrent_info(path)
+        except (RuntimeError, ValueError, OSError) as e:
+            raise TorrentError(str(e)) from e
+        tid = _tid_of(ti.info_hashes())
+        if tid in self.handles:
+            raise Duplicate(tid)
+        params = lt.add_torrent_params()
+        params.ti = ti
+        if wanted is not None:
+            keep = set(wanted)
+            params.file_priorities = [4 if i in keep else 0 for i in range(ti.num_files())]
+        return self._add(tid, self._add_params(params, save_path, paused))
+
+    def add_magnet(self, uri: str, save_path: str, paused: bool = False) -> str:
+        try:
+            params = lt.parse_magnet_uri(uri.strip())
+        except (RuntimeError, ValueError) as e:
+            raise TorrentError(str(e)) from e
+        tid = magnet_tid(uri.strip())
+        if tid in self.handles:
+            raise Duplicate(tid)
+        return self._add(tid, self._add_params(params, save_path, paused))
+
+    def _add(self, tid: str, params, meta: Optional[dict] = None) -> str:
+        try:
+            h = self.session.add_torrent(params)
+        except RuntimeError as e:
+            raise TorrentError(str(e)) from e
+        self.handles[tid] = h
+        self.meta[tid] = meta or {"added": time.time()}
+        self._save_meta()
+        self._request_save(tid)
+        if self.on_changed:
+            self.on_changed()
+        return tid
+
+    # -- commandes -----------------------------------------------------------------------------
+    def pause(self, tid: str):
+        h = self.handles.get(tid)
+        if h is None:
+            return
+        h.unset_flags(lt.torrent_flags.auto_managed)
+        h.pause()
+        self._request_save(tid)
+
+    def resume(self, tid: str):
+        h = self.handles.get(tid)
+        if h is None:
+            return
+        m = self.meta.setdefault(tid, {})
+        if m.pop("seed_stopped", False):
+            m["seed_forever"] = True            # relancé à la main après l'arrêt du partage
+            self._save_meta()
+        h.clear_error()
+        h.resume()
+        self._find_sources(h)
+        self._request_save(tid)
+
+    def remove(self, tid: str, delete_files: bool = False):
+        h = self.handles.pop(tid, None)
+        if h is None:
+            return
+        self.session.remove_torrent(h, lt.session.delete_files if delete_files else 0)
+        self.meta.pop(tid, None)
+        self._pending_saves.discard(tid)
+        self._save_meta()
+        try:
+            os.remove(self._resume_path(tid))
+        except OSError:
+            pass
+        if self.on_changed:
+            self.on_changed()
+
+    def files(self, tid: str) -> list:
+        """Fichiers d'un téléchargement ([] tant que les métadonnées d'un lien magnet manquent)."""
+        h = self.handles.get(tid)
+        if h is None or not h.status().has_metadata:
+            return []
+        ti = h.torrent_file()
+        if ti is None:
+            return []
+        fs = ti.files()
+        prio = h.get_file_priorities()
+        progress = h.file_progress()
+        out = []
+        for i in range(fs.num_files()):
+            if _is_pad(fs, i):
+                continue
+            out.append(FileEntry(i, fs.file_path(i), fs.file_size(i),
+                                 progress[i] if i < len(progress) else 0,
+                                 (prio[i] if i < len(prio) else 4) > 0))
+        return out
+
+    def set_wanted(self, tid: str, index: int, wanted: bool):
+        h = self.handles.get(tid)
+        if h is None:
+            return
+        h.file_priority(index, 4 if wanted else 0)
+        if wanted:
+            self._find_sources(h)        # complet, il avait laissé partir les sources complètes
+        m = self.meta.get(tid, {})
+        if wanted and m.get("notified"):
+            m.pop("notified", None)              # un fichier de plus : une nouvelle fin à signaler
+            self._save_meta()
+        self._request_save(tid)
+
+    @staticmethod
+    def _find_sources(h):
+        """Redemande des sources au tracker et au DHT tout de suite (sinon : à la prochaine annonce,
+        jusqu'à 30 min plus tard)."""
+        try:
+            h.force_reannounce()
+            h.force_dht_announce()
+        except RuntimeError:
+            pass
+
+    def connect_peer(self, tid: str, host: str, port: int):
+        h = self.handles.get(tid)
+        if h is not None:
+            h.connect_peer((host, port))
+
+    def content_path(self, tid: str) -> str:
+        """Fichier (torrent d'un seul fichier) ou dossier téléchargé."""
+        h = self.handles.get(tid)
+        if h is None:
+            return ""
+        st = h.status()
+        return os.path.join(st.save_path, st.name) if st.name else st.save_path
+
+    # -- état ----------------------------------------------------------------------------------
+    def transfers(self) -> list:
+        out = [self._snapshot(tid, h) for tid, h in self.handles.items()]
+        out.sort(key=lambda t: self.meta.get(t.tid, {}).get("added", 0))
+        return out
+
+    def transfer(self, tid: str) -> Optional[Transfer]:
+        h = self.handles.get(tid)
+        return self._snapshot(tid, h) if h is not None else None
+
+    def _snapshot(self, tid: str, h) -> Transfer:
+        st = h.status()
+        S = lt.torrent_status.states
+        paused = bool(st.flags & lt.torrent_flags.paused)
+        complete = st.has_metadata and st.total_wanted > 0 and st.total_wanted_done >= st.total_wanted
+        uploaded = st.all_time_upload
+        ratio = uploaded / st.total_wanted if st.total_wanted else 0.0
+        error = ""
+        if st.errc and st.errc.value() != 0:
+            error = st.errc.message()
+            state = "error"
+        elif paused:
+            state = "done" if complete else "paused"
+        elif st.state in (S.checking_files, S.checking_resume_data, S.queued_for_checking, S.allocating):
+            state = "checking"
+        elif st.state == S.downloading_metadata or not st.has_metadata:
+            state = "metadata"
+        elif complete or st.state in (S.finished, S.seeding):
+            state = "seeding"
+        else:
+            state = "downloading"
+        # (vitesses = moyennes glissantes : elles traînent quelques secondes après la fin ou la pause)
+        rate = 0 if complete or paused else st.download_payload_rate
+        up = 0 if paused else st.upload_payload_rate
+        left = max(0, st.total_wanted - st.total_wanted_done)
+        eta = int(left / rate) if rate > 0 and left else (0 if complete else -1)
+        return Transfer(tid=tid, name=st.name or self.meta.get(tid, {}).get("name", "") or tid,
+                        state=state, progress=(st.total_wanted_done / st.total_wanted if st.total_wanted else 0.0),
+                        size=st.total_wanted, done=st.total_wanted_done, down_rate=rate,
+                        up_rate=up, eta=eta, peers=st.num_peers, seeds=st.num_seeds,
+                        ratio=ratio, uploaded=uploaded, save_path=st.save_path, error=error,
+                        has_metadata=st.has_metadata, complete=complete)
+
+    # -- boucle --------------------------------------------------------------------------------
+    def poll(self) -> list:
+        self._handle_alerts()
+        for tid, h in list(self.handles.items()):
+            self._apply_seed_policy(tid, h)
+        if time.monotonic() - self._last_resume > RESUME_EVERY:
+            self._last_resume = time.monotonic()
+            for tid, h in self.handles.items():
+                if h.need_save_resume_data():
+                    self._request_save(tid)
+        return self.transfers()
+
+    def _apply_seed_policy(self, tid: str, h):
+        st = h.status()
+        if st.flags & lt.torrent_flags.paused or not st.has_metadata:
+            return
+        if not (st.total_wanted > 0 and st.total_wanted_done >= st.total_wanted):
+            return
+        if st.state not in (lt.torrent_status.states.finished, lt.torrent_status.states.seeding):
+            return                                    # encore en vérification
+        m = self.meta.setdefault(tid, {})
+        if m.get("seed_forever") or self.seed_policy == "always":
+            return
+        if self.seed_policy == "ratio" and st.total_wanted and st.all_time_upload / st.total_wanted < self.seed_ratio:
+            return
+        m["seed_stopped"] = True
+        self._save_meta()
+        h.unset_flags(lt.torrent_flags.auto_managed)
+        h.pause()
+        self._request_save(tid)
+
+    def _find(self, handle) -> Optional[str]:
+        for tid, h in self.handles.items():
+            if h == handle:
+                return tid
+        return None
+
+    def _handle_alerts(self):
+        for a in self.session.pop_alerts():
+            if isinstance(a, lt.save_resume_data_alert):
+                tid = self._find(a.handle)
+                if tid is not None:
+                    self._write_resume(tid, a.params)
+                    self._pending_saves.discard(tid)
+            elif isinstance(a, lt.save_resume_data_failed_alert):
+                self._pending_saves.discard(self._find(a.handle) or "")
+            elif isinstance(a, lt.torrent_finished_alert):
+                tid = self._find(a.handle)
+                if tid is None:
+                    continue
+                self._request_save(tid)
+                m = self.meta.setdefault(tid, {})
+                if not m.get("notified"):
+                    m["notified"] = True
+                    self._save_meta()
+                    if self.on_finished:
+                        self.on_finished(tid)
+            elif isinstance(a, lt.metadata_received_alert):
+                tid = self._find(a.handle)
+                if tid is not None:
+                    self.meta.setdefault(tid, {})["name"] = a.handle.status().name
+                    self._save_meta()
+                    self._request_save(tid)
+                    if self.on_changed:
+                        self.on_changed()
+            elif isinstance(a, (lt.torrent_error_alert, lt.file_error_alert)):
+                self.errors.append(a.message())
+
+    # -- enregistrement ------------------------------------------------------------------------
+    def _resume_path(self, tid: str) -> str:
+        return os.path.join(self.state_dir, tid + ".resume")
+
+    def _request_save(self, tid: str):
+        h = self.handles.get(tid)
+        if h is None or not h.is_valid():
+            return
+        h.save_resume_data(lt.torrent_handle.save_info_dict | lt.torrent_handle.flush_disk_cache)
+        self._pending_saves.add(tid)
+
+    def _write_resume(self, tid: str, params):
+        data = lt.write_resume_data_buf(params)
+        _write_atomic(self._resume_path(tid), bytes(data))
+
+    def _save_meta(self):
+        _write_atomic(os.path.join(self.state_dir, "state.json"),
+                      json.dumps(self.meta, indent=1, ensure_ascii=False).encode("utf-8"))
+
+    def _load(self):
+        try:
+            with open(os.path.join(self.state_dir, "state.json"), encoding="utf-8") as fh:
+                meta = json.load(fh)
+        except (OSError, ValueError):
+            meta = {}
+        if not isinstance(meta, dict):
+            meta = {}
+        for name in sorted(os.listdir(self.state_dir)):
+            if not name.endswith(".resume"):
+                continue
+            tid = name[:-len(".resume")]
+            try:
+                with open(os.path.join(self.state_dir, name), "rb") as fh:
+                    params = lt.read_resume_data(fh.read())
+                h = self.session.add_torrent(params)
+            except (OSError, RuntimeError, ValueError) as e:
+                self.errors.append(f"{name} : {e}")
+                continue
+            self.handles[tid] = h
+            m = meta.get(tid)
+            self.meta[tid] = m if isinstance(m, dict) else {"added": time.time()}
+
+    def save_all(self, timeout: float = 5.0):
+        """Avant de quitter : données de reprise de tout le monde, attendues au plus `timeout` s."""
+        for tid in list(self.handles):
+            self._request_save(tid)
+        end = time.monotonic() + timeout
+        while self._pending_saves and time.monotonic() < end:
+            self.session.wait_for_alert(200)
+            self._handle_alerts()
+        self._save_meta()
+
+    def shutdown(self):
+        self.save_all()
+        self.session.pause()
+
+
+def _write_atomic(path: str, data: bytes):
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as fh:
+        fh.write(data)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)

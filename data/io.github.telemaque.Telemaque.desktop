@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Name=Télémaque
+GenericName=BitTorrent Client
+GenericName[fr]=Client BitTorrent
+GenericName[de]=BitTorrent-Client
+Comment=Download torrents, simply
+Comment[fr]=Télécharger des torrents, tout simplement
+Comment[de]=Torrents herunterladen, ganz einfach
+Exec=telemaque %U
+Icon=io.github.telemaque.Telemaque
+Terminal=false
+Categories=Network;FileTransfer;P2P;GTK;GNOME;
+MimeType=application/x-bittorrent;x-scheme-handler/magnet;
+Keywords=torrent;bittorrent;magnet;download;p2p;
+Keywords[fr]=torrent;bittorrent;magnet;télécharger;téléchargement;p2p;
+StartupNotify=true
+StartupWMClass=io.github.telemaque.Telemaque

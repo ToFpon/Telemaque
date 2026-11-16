@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.telemaque.Telemaque</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Télémaque</name>
+  <summary>Download torrents, simply</summary>
+  <summary xml:lang="fr">Télécharger des torrents, tout simplement</summary>
+  <summary xml:lang="de">Torrents herunterladen, ganz einfach</summary>
+  <developer id="io.github.telemaque">
+    <name>Tof</name>
+  </developer>
+  <description>
+    <p>
+      Télémaque is a simple BitTorrent client for GNOME, built on libtorrent (the engine of qBittorrent and
+      Deluge). Open a .torrent file or a magnet link, choose where to save it and which files to keep, and
+      follow your downloads. Nothing more.
+    </p>
+    <p xml:lang="fr">
+      Télémaque est un client BitTorrent tout simple pour GNOME, sur libtorrent (le moteur de qBittorrent et
+      de Deluge). Ouvrez un fichier .torrent ou un lien magnet, choisissez où l'enregistrer et quels fichiers
+      garder, et suivez vos téléchargements. Rien de plus.
+    </p>
+    <p xml:lang="de">
+      Télémaque ist ein einfacher BitTorrent-Client für GNOME auf Basis von libtorrent (der Engine von
+      qBittorrent und Deluge). Öffnen Sie eine .torrent-Datei oder einen Magnet-Link, wählen Sie Speicherort
+      und Dateien und verfolgen Sie Ihre Downloads. Mehr nicht.
+    </p>
+    <ul>
+      <li>.torrent files and magnet links (from Firefox, the clipboard or drag and drop)</li>
+      <li>Choose the files to keep, before or during the download</li>
+      <li>Pause, resume, remove with or without the files</li>
+      <li>Stops sharing at the ratio you choose; speed limits</li>
+      <li>Notification when a download is finished; keeps running in the background if you wish</li>
+    </ul>
+    <ul xml:lang="fr">
+      <li>Fichiers .torrent et liens magnet (depuis Firefox, le presse-papiers ou un glisser)</li>
+      <li>Choisir les fichiers à garder, avant ou pendant le téléchargement</li>
+      <li>Pause, reprise, suppression avec ou sans les fichiers</li>
+      <li>Arrêt du partage au ratio choisi ; limites de vitesse</li>
+      <li>Notification à la fin d'un téléchargement ; continue en arrière-plan si on le souhaite</li>
+    </ul>
+    <ul xml:lang="de">
+      <li>.torrent-Dateien und Magnet-Links (aus Firefox, der Zwischenablage oder per Ziehen)</li>
+      <li>Dateien auswählen, vor oder während des Downloads</li>
+      <li>Pausieren, fortsetzen, entfernen mit oder ohne Dateien</li>
+      <li>Teilen endet beim gewählten Verhältnis; Geschwindigkeitsbegrenzung</li>
+      <li>Benachrichtigung am Ende eines Downloads; läuft auf Wunsch im Hintergrund weiter</li>
+    </ul>
+  </description>
+  <url type="homepage">https://github.com/ToFpon/Telemaque</url>
+  <url type="vcs-browser">https://github.com/ToFpon/Telemaque</url>
+  <url type="bugtracker">https://github.com/ToFpon/Telemaque/issues</url>
+  <launchable type="desktop-id">io.github.telemaque.Telemaque.desktop</launchable>
+  <categories>
+    <category>Network</category>
+    <category>FileTransfer</category>
+  </categories>
+  <keywords>
+    <keyword>torrent</keyword>
+    <keyword>bittorrent</keyword>
+    <keyword>magnet</keyword>
+  </keywords>
+  <provides>
+    <binary>telemaque</binary>
+    <mediatype>application/x-bittorrent</mediatype>
+  </provides>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-11-16">
+      <description>
+        <p>First version.</p>
+      </description>
+    </release>
+  </releases>
+</component>

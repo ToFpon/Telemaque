@@ -1,0 +1,47 @@
+"""Fonctionnalités facultatives de Télémaque, toutes désactivables sans redémarrage.
+
+Chaque fonctionnalité se consulte au moment de l'usage (enabled(id)), jamais à l'import :
+Préférences → Fonctionnalités l'active ou la coupe tout de suite.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .i18n import tr
+from .settings import settings
+
+
+@dataclass(frozen=True)
+class Feature:
+    id: str
+    title: str
+    description: str
+    icon: str
+    default: bool = True
+
+
+FEATURES = [
+    Feature("notify", tr("Prévenir à la fin d'un téléchargement"),
+            tr("Une notification du bureau, avec « Ouvrir » et « Afficher dans le dossier »"),
+            "preferences-system-notifications-symbolic"),
+    Feature("inhibit", tr("Empêcher la mise en veille"),
+            tr("L'ordinateur ne se met pas en veille tant qu'un téléchargement est en cours"),
+            "system-suspend-symbolic"),
+]
+
+BY_ID = {f.id: f for f in FEATURES}
+
+
+def enabled(fid: str) -> bool:
+    f = BY_ID.get(fid)
+    if f is None:
+        return False
+    value = settings["features"].get(fid, f.default)
+    return value if isinstance(value, bool) else f.default     # « "no" » écrit à la main ne vaut pas vrai
+
+
+def set_enabled(fid: str, value: bool):
+    feats = dict(settings["features"])
+    feats[fid] = bool(value)
+    settings["features"] = feats
