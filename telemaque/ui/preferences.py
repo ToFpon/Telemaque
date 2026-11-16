@@ -49,6 +49,25 @@ def _spin(title: str, key: str, lower: float, upper: float, step: float, digits:
     return row
 
 
+def default_app_row(title: str, what: str, app_name: str) -> Adw.SwitchRow:
+    """Interrupteur « application par défaut » (defaultapp.py), comme celui d'Odysseus : l'état affiché est
+    celui du système ; grisé quand l'application tourne depuis les sources (pas de lanceur installé)."""
+    from .. import defaultapp
+    row = Adw.SwitchRow(title=title, active=defaultapp.is_default())
+    row.set_subtitle(what + "\n" + defaultapp.COMMAND)
+    row.set_subtitle_lines(0)
+    if not defaultapp.installed():
+        row.set_subtitle(row.get_subtitle() + "\n" + tr("{0} n'est pas installé (lancé depuis les sources)").format(app_name))
+        row.set_sensitive(False)
+        return row
+
+    def toggled(r, *_):
+        if r.get_active() != defaultapp.is_default() and not defaultapp.set_default(r.get_active()):
+            r.set_active(defaultapp.is_default())
+    row.connect("notify::active", toggled)
+    return row
+
+
 class PreferencesWindow(Adw.PreferencesWindow):
     def __init__(self):
         super().__init__(title=tr("Préférences"), search_enabled=False, default_width=620, default_height=680)
@@ -58,6 +77,11 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def _general(self) -> Adw.PreferencesPage:
         page = Adw.PreferencesPage(title=tr("Général"), icon_name="preferences-system-symbolic", name="general")
+        system = Adw.PreferencesGroup()
+        system.add(default_app_row(tr("Application par défaut pour les torrents"),
+                                    tr("Les liens magnet (Firefox…) et les fichiers .torrent s'ouvrent avec Télémaque ; coupé, l'application d'avant reprend la main."),
+                                    "Télémaque"))
+        page.add(system)
         dl = Adw.PreferencesGroup(title=tr("Téléchargements"))
         self.folder = path_row(tr("Dossier par défaut"), settings.download_dir(), self._browse)
         self.folder.set_show_apply_button(True)

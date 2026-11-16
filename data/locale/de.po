@@ -158,7 +158,7 @@ msgstr "Alle pausieren"
 msgid "Tout reprendre"
 msgstr "Alle fortsetzen"
 
-#: telemaque/tray.py:204 telemaque/ui/preferences.py:67
+#: telemaque/tray.py:204 telemaque/ui/preferences.py:91
 #: telemaque/ui/window.py:215 telemaque/ui/window.py:571
 msgid "Quitter"
 msgstr "Beenden"
@@ -243,47 +243,59 @@ msgid_plural "{0} fichiers"
 msgstr[0] "{0} Datei"
 msgstr[1] "{0} Dateien"
 
-#: telemaque/ui/preferences.py:62 telemaque/ui/preferences.py:103
+#: telemaque/ui/preferences.py:86 telemaque/ui/preferences.py:127
 msgid "Dossier par défaut"
 msgstr "Standardordner"
 
-#: telemaque/ui/preferences.py:74
+#: telemaque/ui/preferences.py:98
 msgid "Une fois le téléchargement terminé"
 msgstr "Nach Abschluss des Downloads"
 
-#: telemaque/ui/preferences.py:78
+#: telemaque/ui/preferences.py:102
 msgid "Ratio"
 msgstr "Verhältnis"
 
-#: telemaque/ui/preferences.py:89
+#: telemaque/ui/preferences.py:113
 msgid "Style"
 msgstr "Stil"
 
-#: telemaque/ui/preferences.py:54 telemaque/ui/window.py:211
+#: telemaque/ui/preferences.py:73 telemaque/ui/window.py:211
 msgid "Préférences"
 msgstr "Einstellungen"
 
-#: telemaque/ui/preferences.py:60
+#: telemaque/ui/preferences.py:79
 msgid "Général"
 msgstr "Allgemein"
 
-#: telemaque/ui/preferences.py:61
+#: telemaque/ui/preferences.py:81
+msgid "Application par défaut pour les torrents"
+msgstr "Standardanwendung für Torrents"
+
+#: telemaque/ui/preferences.py:82
+msgid ""
+"Les liens magnet (Firefox…) et les fichiers .torrent s'ouvrent avec "
+"Télémaque ; coupé, l'application d'avant reprend la main."
+msgstr ""
+"Magnet-Links (Firefox…) und .torrent-Dateien öffnen sich mit Télémaque; "
+"ausgeschaltet übernimmt wieder die vorherige Anwendung."
+
+#: telemaque/ui/preferences.py:85
 msgid "Téléchargements"
 msgstr "Downloads"
 
-#: telemaque/ui/preferences.py:66
+#: telemaque/ui/preferences.py:90
 msgid "En fermant la fenêtre"
 msgstr "Beim Schließen des Fensters"
 
-#: telemaque/ui/preferences.py:69
+#: telemaque/ui/preferences.py:93
 msgid "Quand un téléchargement ou un partage est en cours"
 msgstr "Wenn ein Download oder das Teilen läuft"
 
-#: telemaque/ui/preferences.py:71
+#: telemaque/ui/preferences.py:95
 msgid "Partage"
 msgstr "Teilen"
 
-#: telemaque/ui/preferences.py:72
+#: telemaque/ui/preferences.py:96
 msgid ""
 "Un torrent vit du partage : renvoyer au moins autant qu'on a reçu (ratio 1) "
 "est la règle de politesse."
@@ -291,83 +303,83 @@ msgstr ""
 "Torrents leben vom Teilen: mindestens so viel zurückzugeben, wie man "
 "erhalten hat (Verhältnis 1), ist die Höflichkeitsregel."
 
-#: telemaque/ui/preferences.py:75
+#: telemaque/ui/preferences.py:99
 msgid "Partager jusqu'au ratio"
 msgstr "Bis zum Verhältnis teilen"
 
-#: telemaque/ui/preferences.py:75
+#: telemaque/ui/preferences.py:99
 msgid "Partager sans limite"
 msgstr "Ohne Grenze teilen"
 
-#: telemaque/ui/preferences.py:75
+#: telemaque/ui/preferences.py:99
 msgid "Arrêter tout de suite"
 msgstr "Sofort beenden"
 
-#: telemaque/ui/preferences.py:79
+#: telemaque/ui/preferences.py:103
 msgid "Envoyé ÷ reçu : 1,0 = autant envoyé que reçu"
 msgstr "Gesendet ÷ empfangen: 1,0 = so viel gesendet wie empfangen"
 
-#: telemaque/ui/preferences.py:84
+#: telemaque/ui/preferences.py:108
 msgid "Vitesse"
 msgstr "Geschwindigkeit"
 
-#: telemaque/ui/preferences.py:84
+#: telemaque/ui/preferences.py:108
 msgid "0 : sans limite"
 msgstr "0: keine Begrenzung"
 
-#: telemaque/ui/preferences.py:85
+#: telemaque/ui/preferences.py:109
 msgid "Réception maximale (Ko/s)"
 msgstr "Maximaler Empfang (kB/s)"
 
-#: telemaque/ui/preferences.py:86
+#: telemaque/ui/preferences.py:110
 msgid "Envoi maximal (Ko/s)"
 msgstr "Maximaler Versand (kB/s)"
 
-#: telemaque/ui/preferences.py:88
+#: telemaque/ui/preferences.py:112
 msgid "Apparence"
 msgstr "Darstellung"
 
-#: telemaque/ui/preferences.py:89 telemaque/ui/preferences.py:94
+#: telemaque/ui/preferences.py:113 telemaque/ui/preferences.py:118
 msgid "Comme le système"
 msgstr "Wie das System"
 
-#: telemaque/ui/preferences.py:89
+#: telemaque/ui/preferences.py:113
 msgid "Clair"
 msgstr "Hell"
 
-#: telemaque/ui/preferences.py:89
+#: telemaque/ui/preferences.py:113
 msgid "Sombre"
 msgstr "Dunkel"
 
-#: telemaque/ui/preferences.py:94
+#: telemaque/ui/preferences.py:118
 msgid "Langue"
 msgstr "Sprache"
 
-#: telemaque/ui/preferences.py:95
+#: telemaque/ui/preferences.py:119
 msgid "Appliquée au prochain démarrage"
 msgstr "Wird beim nächsten Start übernommen"
 
-#: telemaque/ui/preferences.py:106
+#: telemaque/ui/preferences.py:130
 msgid "Réseau"
 msgstr "Netzwerk"
 
-#: telemaque/ui/preferences.py:108
+#: telemaque/ui/preferences.py:132
 msgid "Port d'écoute"
 msgstr "Port"
 
-#: telemaque/ui/preferences.py:110
+#: telemaque/ui/preferences.py:134
 msgid "Réseau DHT"
 msgstr "DHT-Netzwerk"
 
-#: telemaque/ui/preferences.py:111
+#: telemaque/ui/preferences.py:135
 msgid "Trouver des sources sans tracker ; indispensable aux liens magnet"
 msgstr "Quellen ohne Tracker finden; für Magnet-Links unverzichtbar"
 
-#: telemaque/ui/preferences.py:116
+#: telemaque/ui/preferences.py:140
 msgid "Fonctionnalités"
 msgstr "Funktionen"
 
-#: telemaque/ui/preferences.py:118
+#: telemaque/ui/preferences.py:142
 msgid ""
 "Chaque fonctionnalité s'active ou se coupe tout de suite, sans redémarrer "
 "Télémaque"
@@ -375,17 +387,21 @@ msgstr ""
 "Jede Funktion wird sofort ein- oder ausgeschaltet, ohne Télémaque neu zu "
 "starten"
 
-#: telemaque/ui/preferences.py:67
+#: telemaque/ui/preferences.py:91
 msgid "Demander"
 msgstr "Fragen"
 
-#: telemaque/ui/preferences.py:67 telemaque/ui/window.py:572
+#: telemaque/ui/preferences.py:91 telemaque/ui/window.py:572
 msgid "Continuer en arrière-plan"
 msgstr "Im Hintergrund weiterlaufen"
 
-#: telemaque/ui/preferences.py:109
+#: telemaque/ui/preferences.py:133
 msgid "Ouvert sur la box automatiquement quand elle le permet (UPnP)"
 msgstr "Wird am Router automatisch geöffnet, wenn er es erlaubt (UPnP)"
+
+#: telemaque/ui/preferences.py:60
+msgid "{0} n'est pas installé (lancé depuis les sources)"
+msgstr "{0} ist nicht installiert (aus dem Quellcode gestartet)"
 
 #: telemaque/ui/window.py:33
 msgid "Recherche des informations du torrent…"

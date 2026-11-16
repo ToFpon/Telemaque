@@ -47,6 +47,7 @@ DEFAULTS: dict[str, Any] = {
     "window_maximized": False,
     "sidebar_visible": True,
     "filter": "all",                # vue de la barre latérale : all, active, done
+    "previous_defaults": {},        # application par défaut d'avant, par type (defaultapp.py)
     "features": {},                 # fonctionnalités activées / désactivées (voir features.py)
 }
 

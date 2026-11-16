@@ -41,8 +41,9 @@ Ubuntu 24.04 / 26.04, Zorin OS 18, Linux Mint 22:
 ```sh
 sudo add-apt-repository ppa:nourpon/telemaque
 sudo apt update && sudo apt install telemaque
-xdg-mime default io.github.telemaque.Telemaque.desktop x-scheme-handler/magnet application/x-bittorrent
 ```
+To open magnet links and .torrent files with Télémaque: Preferences → General → “Default application for
+torrents”.
 Other Debian-based distributions: the `.deb` of the [releases](https://github.com/ToFpon/Telemaque/releases),
 then `sudo apt install ./telemaque_X_all.deb`. From the source code: `./install.sh` (in `~/.local`).
 Site: https://tofmicro.pages-perso.free.fr/Telemaque/
@@ -77,8 +78,9 @@ Ubuntu 24.04 / 26.04, Zorin OS 18, Linux Mint 22 :
 ```sh
 sudo add-apt-repository ppa:nourpon/telemaque
 sudo apt update && sudo apt install telemaque
-xdg-mime default io.github.telemaque.Telemaque.desktop x-scheme-handler/magnet application/x-bittorrent
 ```
+Pour ouvrir les liens magnet et les fichiers .torrent avec Télémaque : Préférences → Général → « Application
+par défaut pour les torrents ».
 Autres distributions basées sur Debian : le `.deb` des [releases](https://github.com/ToFpon/Telemaque/releases),
 puis `sudo apt install ./telemaque_X_all.deb`. Depuis le code : `./install.sh` (dans `~/.local`).
 
