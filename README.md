@@ -36,12 +36,16 @@ Debian package, like its siblings [Odysseus](https://github.com/ToFpon/Odysseus)
   top bar: status, show, pause all, quit), or quit.
   Downloads resume by themselves at the next start.
 
-### Install (from the source code, for now)
+### Install
+Ubuntu 24.04 / 26.04, Zorin OS 18, Linux Mint 22:
 ```sh
-sudo apt install python3-libtorrent python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
-git clone https://github.com/ToFpon/Telemaque && cd Telemaque && ./install.sh
+sudo add-apt-repository ppa:nourpon/telemaque
+sudo apt update && sudo apt install telemaque
 xdg-mime default io.github.telemaque.Telemaque.desktop x-scheme-handler/magnet application/x-bittorrent
 ```
+Other Debian-based distributions: the `.deb` of the [releases](https://github.com/ToFpon/Telemaque/releases),
+then `sudo apt install ./telemaque_X_all.deb`. From the source code: `./install.sh` (in `~/.local`).
+Site: https://tofmicro.pages-perso.free.fr/Telemaque/
 
 ---
 
@@ -68,11 +72,14 @@ Flatpak : un simple paquet Debian, comme ses frères [Odysseus](https://github.c
   haut : état, afficher, tout mettre en pause, quitter), ou quitter. Les téléchargements
   reprennent tout seuls au lancement suivant.
 
-### Installation (depuis le code, pour l'instant)
+### Installation
+Ubuntu 24.04 / 26.04, Zorin OS 18, Linux Mint 22 :
 ```sh
-sudo apt install python3-libtorrent python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
-git clone https://github.com/ToFpon/Telemaque && cd Telemaque && ./install.sh
+sudo add-apt-repository ppa:nourpon/telemaque
+sudo apt update && sudo apt install telemaque
 xdg-mime default io.github.telemaque.Telemaque.desktop x-scheme-handler/magnet application/x-bittorrent
 ```
+Autres distributions basées sur Debian : le `.deb` des [releases](https://github.com/ToFpon/Telemaque/releases),
+puis `sudo apt install ./telemaque_X_all.deb`. Depuis le code : `./install.sh` (dans `~/.local`).
 
 License: GPL-3.0.

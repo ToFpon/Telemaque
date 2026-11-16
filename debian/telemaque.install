@@ -1,0 +1,5 @@
+debian/bin/telemaque usr/bin
+data/io.github.telemaque.Telemaque.desktop usr/share/applications
+data/io.github.telemaque.Telemaque.metainfo.xml usr/share/metainfo
+data/icons/hicolor/scalable/apps/io.github.telemaque.Telemaque.svg usr/share/icons/hicolor/scalable/apps
+data/icons/hicolor/symbolic/apps/io.github.telemaque.Telemaque-symbolic.svg usr/share/icons/hicolor/symbolic/apps

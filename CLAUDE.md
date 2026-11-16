@@ -107,11 +107,22 @@ Captures : `LANGUAGE=fr xvfb-run -a -s "-screen 0 1400x1000x24" python3.12 tools
 [--dark] [--empty] [--add] [--files] [--prefs=PAGE] [--close]` (faux contenus partagés en local, états
 mis en scène). README : `docs/captures/` en français.
 
+## Publication (comme Calypso)
+
+Paquet, commande et module : `telemaque` (nom libre : Ubuntu toutes versions et Debian vérifiés avant la
+1.0.0). PPA `ppa:nourpon/telemaque` (créé par Tof) : `tools/ppa.sh` chez Tof (noble puis resolute, garde-fou
+« à » en fin de ligne du changelog, puis le site par `tools/site.sh`, dossier Telemaque des pages perso Free).
+Nouvelle version : version dans `telemaque/__init__.py`, `debian/telemaque.1`, `<release>` de la fiche
+AppStream, entrée de `debian/changelog` (« X~noble1 », date RÉELLE — `date -R`), commit « Version X » sur main :
+`.github/workflows/release-deb.yml` publie le .deb dans les Releases (seulement pour un commit « Version… »).
+Site : `site/index.html` (anglais, tons verts ; Odysseus bleu, Ithaca violet, Nausicaa orange, Calypso
+turquoise), captures de `site/img/` en anglais et en sombre sauf light.png (`LANGUAGE=en … tools/screenshot.py
+site/img/dark.png --dark`, add `--dark --add`, files `--dark --files`, light) ; version dans la pastille et
+l'accroche, à tenir à jour. Paquet vérifié ici : dpkg-buildpackage, lintian (aucune remarque), appstreamcli.
+Dans le bac à sable, /usr/bin/python3 n'a pas `gi` : vérifier le paquet installé avec python3.12.
+
 ## Feuille de route
 
-1. FAIT (0.1.0, à valider par Tof) : moteur, liste, ajout (.torrent / magnet), fichiers, pause / reprise /
-   suppression, partage au ratio, limites, notifications, arrière-plan, reprise au redémarrage, traductions,
-   installation locale (`install.sh`).
-2. À faire : paquet .deb (`python3-libtorrent` en dépendance), workflow GitHub, PPA (`tools/ppa.sh`, avec le
-   garde-fou « à » en fin de ligne du changelog), site. Vérifier que le nom est libre (Ubuntu 24.04 : aucun
-   paquet / commande « telemaque » ; Debian, resolute, Flathub à vérifier avant de publier).
+1. FAIT et publié en 1.0.0 : moteur, liste, ajout (.torrent / magnet), fichiers, pause / reprise /
+   suppression, partage au ratio, limites, notifications, arrière-plan + icône, barre latérale, barre d'état,
+   sources / pairs, suppression du .torrent, reprise au redémarrage, traductions, paquet, PPA, site.

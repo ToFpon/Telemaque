@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Télémaque — BitTorrent client for GNOME</title>
+<meta name="description" content="Télémaque is a simple BitTorrent client for GNOME on libtorrent: .torrent files and magnet links, choice of files, pause and resume, sharing until a ratio, background mode with a top bar icon. A plain Debian package, no Flatpak.">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07120c;
+    --surface:#0d1d14;
+    --surface-2:#12281b;
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.14);
+    --text:#eef8f1;
+    --text-dim:rgba(238,248,241,.64);
+    --text-faint:rgba(238,248,241,.40);
+    --teal:#33d17a;
+    --teal-bright:#8ff0a4;
+    --teal-deep:#26a269;
+    --sea:#1a5fb4;
+    --green:#4ade80;
+    --display:'Space Grotesk',sans-serif;
+    --body:'Inter',sans-serif;
+    --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--body);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  ::selection{background:var(--teal);color:#04200f}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(14px);background:rgba(7,18,12,.75);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--display);font-weight:600;font-size:1.05rem}
+  .brand img{width:30px;height:30px}
+  .nav-links{display:flex;gap:26px;font-size:.92rem}
+  .nav-links a{color:var(--text-dim);transition:color .2s}
+  .nav-links a:hover{color:var(--text)}
+  .get-pill{font-family:var(--mono);font-size:.74rem;color:var(--green);border:1px solid rgba(74,222,128,.35);background:rgba(74,222,128,.08);padding:6px 14px;border-radius:999px;white-space:nowrap}
+  @media (max-width:720px){.nav-links{display:none}}
+
+  header.hero{padding:150px 0 70px;text-align:center;background:
+      radial-gradient(900px 420px at 50% -10%,rgba(51,209,122,.22),transparent 70%),
+      linear-gradient(180deg,#0a1b12,var(--bg) 70%)}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.78rem;color:var(--teal-bright);border:1px solid rgba(143,240,164,.3);background:rgba(51,209,122,.08);padding:6px 14px;border-radius:999px;margin-bottom:28px}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(2.4rem,6vw,4.4rem);line-height:1.03;letter-spacing:-.03em;margin-bottom:22px}
+  h1 .accent{background:linear-gradient(120deg,var(--teal-bright),var(--teal) 55%,#62a0ea);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:clamp(1.05rem,2vw,1.24rem);color:var(--text-dim);max-width:700px;margin:0 auto 36px}
+  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:56px}
+  .btn{font-weight:600;font-size:.96rem;padding:13px 26px;border-radius:12px;display:inline-flex;align-items:center;gap:9px;border:1px solid transparent;transition:all .2s}
+  .btn-primary{background:linear-gradient(120deg,var(--teal-bright),var(--teal));color:#04200f;box-shadow:0 10px 30px -10px rgba(51,209,122,.7)}
+  .btn-primary:hover{transform:translateY(-1px)}
+  .btn-ghost{border-color:var(--line-strong)}
+  .btn-ghost:hover{border-color:var(--teal);background:rgba(51,209,122,.1)}
+  .shot{border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);box-shadow:0 40px 90px -30px rgba(0,0,0,.8),0 0 0 1px rgba(51,209,122,.08)}
+  .hero .shot{max-width:980px;margin:0 auto}
+
+  section{padding:90px 0}
+  .kicker{font-family:var(--mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+  h2{font-family:var(--display);font-weight:700;font-size:clamp(1.8rem,4vw,2.6rem);letter-spacing:-.02em;margin:10px 0 14px}
+  .sub{color:var(--text-dim);max-width:640px;margin-bottom:44px}
+
+  .row{display:grid;grid-template-columns:1fr 1.25fr;gap:48px;align-items:center;margin-bottom:80px}
+  .row.flip{grid-template-columns:1.25fr 1fr}
+  .row.flip .text{order:2}
+  .row h3{font-family:var(--display);font-size:1.5rem;margin-bottom:12px}
+  .row p{color:var(--text-dim);margin-bottom:14px}
+  .row ul{list-style:none;color:var(--text-dim)}
+  .row li{padding-left:22px;position:relative;margin:6px 0}
+  .row li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:8px;border-radius:2px;background:var(--teal)}
+  @media (max-width:860px){.row,.row.flip{grid-template-columns:1fr}.row.flip .text{order:0}}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px}
+  .card h4{font-family:var(--display);font-size:1.08rem;margin-bottom:8px}
+  .card p{color:var(--text-dim);font-size:.93rem}
+  .card .ico{width:38px;height:38px;border-radius:10px;background:rgba(51,209,122,.12);color:var(--teal-bright);display:grid;place-items:center;margin-bottom:14px;font-family:var(--mono);font-weight:600}
+
+  .install{background:linear-gradient(180deg,var(--bg),#0a1b12)}
+  .install .head{text-align:center;max-width:680px;margin:0 auto 44px}
+  .install .head .sub{margin:0 auto}
+  .icard{max-width:760px;margin:0 auto;background:#030a06;border:1px solid var(--line-strong);border-radius:16px;overflow:hidden;box-shadow:0 24px 60px -24px rgba(0,0,0,.7)}
+  .icard+.icard{margin-top:22px}
+  .itop{position:relative;display:flex;align-items:center;justify-content:center;padding:11px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);font-weight:600;font-size:.84rem}
+  .copy{position:absolute;top:50%;right:10px;transform:translateY(-50%);font-family:var(--mono);font-size:.72rem;cursor:pointer;color:var(--text-dim);background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;padding:5px 10px}
+  .copy:hover{color:var(--text);border-color:var(--teal)}
+  .cmd{margin:0;padding:18px 22px;font-family:var(--mono);font-size:.86rem;line-height:1.9;color:var(--text);overflow-x:auto;white-space:pre}
+  .cmd .p{color:var(--teal);user-select:none}
+  .cmd .c{color:var(--text-faint)}
+  .ibody{padding:8px 22px;background:var(--surface)}
+  .irow{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .irow:last-child{border-bottom:0}
+  .irow .ri{font-size:20px;width:28px;text-align:center}
+  .irow .rt{flex:1;min-width:0}
+  .irow .rt b{display:block;font-weight:600}
+  .irow .rt span{font-size:.86rem;color:var(--text-dim)}
+  .irow a{color:var(--teal-bright)}
+  .irow a:hover{text-decoration:underline}
+  .irow .row-cmd{display:block;width:fit-content;max-width:100%;margin-top:6px;font-family:var(--mono);font-size:.8rem;color:var(--teal-bright);background:rgba(51,209,122,.1);padding:3px 8px;border-radius:6px;white-space:nowrap;overflow-x:auto}
+  .badge{font-family:var(--mono);font-size:.7rem;padding:4px 10px;border-radius:999px;white-space:nowrap;color:var(--green);background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3)}
+  .reqs{max-width:760px;margin:30px auto 0;font-size:.9rem;color:var(--text-dim);text-align:center}
+  .reqs code{font-family:var(--mono);color:var(--teal-bright);font-size:.84rem}
+  @media (max-width:560px){.irow{flex-wrap:wrap}.irow .rt{flex:1 1 calc(100% - 42px)}.irow .badge{margin-left:42px}}
+
+  footer{border-top:1px solid var(--line);padding:40px 0;color:var(--text-faint);font-size:.88rem}
+  footer .wrap{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  footer a{color:var(--text-dim)}
+  footer a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="img/icon.svg" alt="">Télémaque</a>
+    <div class="nav-links">
+      <a href="#simple">Simple</a>
+      <a href="#follow">Follow</a>
+      <a href="#background">Background</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/ToFpon/Telemaque">GitHub</a>
+    </div>
+    <span class="get-pill">v1.0.0 · GPL-3.0</span>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Version 1.0.0 — for Ubuntu 24.04, Zorin OS 18, Debian 13</span>
+    <h1>Torrents.<br><span class="accent">Nothing else.</span></h1>
+    <p class="lede">Télémaque downloads torrents with libtorrent — the engine of qBittorrent and Deluge — in a
+      native GTK4 and libadwaita window that follows your desktop theme. No video sites, no RSS, no search
+      engine, no Flatpak: a plain Debian package.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#install">Install Télémaque</a>
+      <a class="btn btn-ghost" href="https://github.com/ToFpon/Telemaque">Source code</a>
+    </div>
+    <div class="shot"><img src="img/dark.png" alt="Télémaque with downloads in progress, finished and paused, dark theme" width="890" height="510"></div>
+  </div>
+</header>
+
+<section id="simple">
+  <div class="wrap">
+    <span class="kicker">Simple</span>
+    <h2>Open, choose, download</h2>
+    <p class="sub">A .torrent file or a magnet link — from Firefox, your file manager, the clipboard (Ctrl+V) or
+      drag and drop — and Télémaque asks only what matters.</p>
+    <div class="row">
+      <div class="text">
+        <h3>Before starting</h3>
+        <ul>
+          <li>Where to save it, your Downloads folder by default</li>
+          <li>Which files to keep: uncheck the bonus of a season pack</li>
+          <li>Start right away, or add it paused</li>
+          <li>Option: delete the .torrent file once added, to leave fewer files lying around</li>
+        </ul>
+      </div>
+      <div class="shot"><img src="img/add.png" alt="Add a torrent: folder and files to keep" loading="lazy"></div>
+    </div>
+    <div class="row flip">
+      <div class="text">
+        <h3>Change your mind on the way</h3>
+        <p>Files can be checked or unchecked during the download, each with its own progress.</p>
+      </div>
+      <div class="shot"><img src="img/files.png" alt="Files of a download, with checkboxes" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<section id="follow" style="background:var(--surface)">
+  <div class="wrap">
+    <span class="kicker">Follow</span>
+    <h2>Everything at a glance</h2>
+    <p class="sub">Progress, speed, time left, seeds and peers, ratio. A sidebar sorts all, in progress and finished
+      downloads; a status bar shows your public address — the VPN one, if you use a VPN —, the port and the DHT.</p>
+    <div class="row">
+      <div class="text">
+        <h3>Your theme, light or dark</h3>
+        <p>No colours of its own: Télémaque follows Adwaita, your accent colour and your GTK4 theme.</p>
+      </div>
+      <div class="shot"><img src="img/light.png" alt="Télémaque in the light theme" loading="lazy"></div>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="ico">⇅</div><h4>Fair sharing</h4><p>Stops sharing at the ratio you choose (1.0 by default), never, or right away.</p></div>
+      <div class="card"><div class="ico">⏸</div><h4>Pause, resume, remove</h4><p>Remove from the list only, or delete the files too. Everything resumes at the next start.</p></div>
+      <div class="card"><div class="ico">⚡</div><h4>Speed limits</h4><p>Download and upload limits, listening port, DHT on or off.</p></div>
+      <div class="card"><div class="ico">🔔</div><h4>Notifications</h4><p>A desktop notification when a download is finished, with Open and Show in Folder.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="background">
+  <div class="wrap">
+    <span class="kicker">Background</span>
+    <h2>Close the window, keep downloading</h2>
+    <p class="sub">Télémaque asks once: keep running in the background, or quit. In the background, an icon in the
+      top bar shows what is going on and offers Show, Pause All / Resume All and Quit (AppIndicator extension, present
+      on Zorin OS and Ubuntu). The computer does not suspend while a download is running.</p>
+  </div>
+</section>
+
+<section id="install" class="install">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">Install</span>
+      <h2>Ready to set sail.</h2>
+      <p class="sub">Télémaque is available for <b>Ubuntu 24.04 “Noble”</b> and <b>26.04 “Resolute”</b> and their derivatives — Zorin OS 18, Linux Mint 22 — from a PPA, under X11 or Wayland. Updates then arrive with the rest of your system.</p>
+    </div>
+    <div class="icard">
+      <div class="itop">Terminal<button class="copy" type="button" title="Copy the two install commands" data-copy="sudo add-apt-repository ppa:nourpon/telemaque&#10;sudo apt update &amp;&amp; sudo apt install telemaque">Copy</button></div>
+      <pre class="cmd"><span class="p">$ </span>sudo add-apt-repository ppa:nourpon/telemaque
+<span class="p">$ </span>sudo apt update &amp;&amp; sudo apt install telemaque
+<span class="c"># optional: open magnet links and .torrent files with Télémaque</span>
+<span class="p">$ </span>xdg-mime default io.github.telemaque.Telemaque.desktop x-scheme-handler/magnet application/x-bittorrent</pre>
+    </div>
+    <div class="icard">
+      <div class="ibody">
+        <div class="irow"><span class="ri">📦</span><div class="rt"><b>Debian package &amp; PPA</b><span>Signed packages, updated through apt · <a href="https://launchpad.net/~nourpon/+archive/ubuntu/telemaque">ppa:nourpon/telemaque</a></span></div><span class="badge">Available</span></div>
+        <div class="irow"><span class="ri">🧩</span><div class="rt"><b>Other Debian-based distributions</b><span>Debian 13… · download the .deb from <a href="https://github.com/ToFpon/Telemaque/releases">GitHub Releases</a> and open it, or in a terminal:<code class="row-cmd">sudo apt install ./telemaque_*_all.deb</code></span></div><span class="badge">Available</span></div>
+        <div class="irow"><span class="ri">💻</span><div class="rt"><b>Source code</b><span>GPL-3.0 · <a href="https://github.com/ToFpon/Telemaque">github.com/ToFpon/Telemaque</a></span></div><span class="badge">Available</span></div>
+        <div class="irow"><span class="ri">🐞</span><div class="rt"><b>Found a bug? An idea?</b><span><a href="https://github.com/ToFpon/Telemaque/issues">Open an issue on GitHub</a></span></div><span class="badge">Welcome</span></div>
+      </div>
+    </div>
+    <p class="reqs">Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5, <code>python3-libtorrent</code> 2.0 — all installed by the package.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Télémaque — free software, GPL-3.0 · by Tof</span>
+    <span><a href="https://github.com/ToFpon/Telemaque">GitHub</a> · <a href="https://launchpad.net/~nourpon/+archive/ubuntu/telemaque">Launchpad</a> · also <a href="https://tofmicro.pages-perso.free.fr/Odysseus/">Odysseus</a>, <a href="https://tofmicro.pages-perso.free.fr/Nausicaa/">Nausicaa</a>, <a href="https://tofmicro.pages-perso.free.fr/Calypso/">Calypso</a></span>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll(".copy").forEach(b => b.addEventListener("click", () => {
+    navigator.clipboard.writeText(b.dataset.copy).then(() => {
+      const t = b.textContent; b.textContent = "Copied ✓"; setTimeout(() => b.textContent = t, 1600);
+    });
+  }));
+</script>
+</body>
+</html>

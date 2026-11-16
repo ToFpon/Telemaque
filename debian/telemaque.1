@@ -1,0 +1,25 @@
+.TH TELEMAQUE 1 "November 2026" "Télémaque 1.0.0" "User Commands"
+.SH NAME
+telemaque \- simple BitTorrent client for GNOME (Télémaque)
+.SH SYNOPSIS
+.B telemaque
+[\fIOPTION\fR] [\fIFILE.torrent\fR | \fIMAGNET-LINK\fR...]
+.SH DESCRIPTION
+Télémaque downloads torrents with libtorrent: .torrent files and magnet links,
+choice of the files to keep, pause, resume, sharing until a chosen ratio,
+speed limits. Each file or magnet link given on the command line opens the
+"Add a Torrent" dialog. If Télémaque is already running (in a window or in the
+background), they are sent to the running instance.
+.SH OPTIONS
+.TP
+.BR \-v ", " \-\-version
+Show the version.
+.SH FILES
+.TP
+.I ~/.config/telemaque/settings.json
+Preferences.
+.TP
+.I ~/.local/share/telemaque/torrents/
+Downloads in the list, resumed at the next start.
+.SH SEE ALSO
+https://github.com/ToFpon/Telemaque

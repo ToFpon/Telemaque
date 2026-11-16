@@ -1,0 +1,26 @@
+Source: telemaque
+Section: net
+Priority: optional
+Maintainer: Tof <nourpon@gmail.com>
+Build-Depends: debhelper-compat (= 13), dh-python, python3:any
+Standards-Version: 4.6.2
+Homepage: https://github.com/ToFpon/Telemaque
+Vcs-Browser: https://github.com/ToFpon/Telemaque
+Vcs-Git: https://github.com/ToFpon/Telemaque.git
+Rules-Requires-Root: no
+
+Package: telemaque
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.10), python3-gi,
+ gir1.2-gtk-4.0 (>= 4.14), gir1.2-adw-1 (>= 1.5), gir1.2-glib-2.0, python3-libtorrent (>= 2.0)
+Suggests: gnome-shell-extension-appindicator
+Description: simple BitTorrent client for GNOME
+ Télémaque downloads torrents, and only that, with libtorrent (the engine of
+ qBittorrent and Deluge): .torrent files and magnet links, choice of the files
+ to keep before and during the download, pause, resume, removal with or
+ without the files, sharing until a chosen ratio, speed limits.
+ .
+ A sidebar sorts downloads (all, in progress, finished); a status bar shows
+ the public address, the port and the DHT. A notification tells when a
+ download is finished, and Télémaque can keep running in the background with
+ an icon in the top bar. It follows the desktop theme (Adwaita, light/dark).

@@ -31,21 +31,24 @@
       <li>Choose the files to keep, before or during the download</li>
       <li>Pause, resume, remove with or without the files</li>
       <li>Stops sharing at the ratio you choose; speed limits</li>
-      <li>Notification when a download is finished; keeps running in the background if you wish</li>
+      <li>Seeds and peers of each download; status bar with the public address, the port and the DHT</li>
+      <li>Notification when a download is finished; keeps running in the background with an icon in the top bar</li>
     </ul>
     <ul xml:lang="fr">
       <li>Fichiers .torrent et liens magnet (depuis Firefox, le presse-papiers ou un glisser)</li>
       <li>Choisir les fichiers à garder, avant ou pendant le téléchargement</li>
       <li>Pause, reprise, suppression avec ou sans les fichiers</li>
       <li>Arrêt du partage au ratio choisi ; limites de vitesse</li>
-      <li>Notification à la fin d'un téléchargement ; continue en arrière-plan si on le souhaite</li>
+      <li>Sources et pairs de chaque téléchargement ; barre d'état avec l'adresse publique, le port et le DHT</li>
+      <li>Notification à la fin d'un téléchargement ; continue en arrière-plan avec une icône dans la barre du haut</li>
     </ul>
     <ul xml:lang="de">
       <li>.torrent-Dateien und Magnet-Links (aus Firefox, der Zwischenablage oder per Ziehen)</li>
       <li>Dateien auswählen, vor oder während des Downloads</li>
       <li>Pausieren, fortsetzen, entfernen mit oder ohne Dateien</li>
       <li>Teilen endet beim gewählten Verhältnis; Geschwindigkeitsbegrenzung</li>
-      <li>Benachrichtigung am Ende eines Downloads; läuft auf Wunsch im Hintergrund weiter</li>
+      <li>Seeds und Peers jedes Downloads; Statusleiste mit öffentlicher Adresse, Port und DHT</li>
+      <li>Benachrichtigung am Ende eines Downloads; läuft mit einem Symbol in der oberen Leiste im Hintergrund weiter</li>
     </ul>
   </description>
   <url type="homepage">https://github.com/ToFpon/Telemaque</url>
@@ -70,9 +73,15 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="0.1.0" date="2026-11-16">
+    <release version="1.0.0" date="2026-11-16">
       <description>
-        <p>First version.</p>
+        <p>First release.</p>
+        <ul>
+          <li>.torrent files and magnet links, choice of the files to keep before and during the download</li>
+          <li>Pause, resume, remove with or without the files; sharing until the chosen ratio; speed limits</li>
+          <li>Sidebar (all, in progress, finished), seeds and peers of each download, status bar with the public address, the port and the DHT</li>
+          <li>Notification when a download is finished; keeps running in the background with an icon in the top bar</li>
+        </ul>
       </description>
     </release>
   </releases>

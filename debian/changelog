@@ -1,0 +1,8 @@
+telemaque (1.0.0~noble1) noble; urgency=medium
+
+  * Première version publiée : client BitTorrent tout simple pour GNOME sur
+    libtorrent (fichiers .torrent et liens magnet, choix des fichiers, pause,
+    reprise, partage jusqu'au ratio, limites, barre latérale, barre d'état,
+    icône dans la barre du haut en arrière-plan).
+
+ -- Tof <nourpon@gmail.com>  Mon, 16 Nov 2026 10:27:31 +0000

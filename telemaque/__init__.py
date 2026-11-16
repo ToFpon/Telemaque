@@ -2,4 +2,4 @@
 
 APP_ID = "io.github.telemaque.Telemaque"
 APP_NAME = "Télémaque"
-VERSION = "0.1.0"
+VERSION = "1.0.0"
