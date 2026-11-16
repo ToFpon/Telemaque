@@ -1,3 +1,15 @@
+telemaque (1.0.4~noble1) noble; urgency=medium
+
+  * Sélection de plusieurs téléchargements (cases rondes à droite) : pause,
+    reprise, déplacement ou suppression ensemble (Ctrl+A, Échap, Suppr).
+  * Déplacer les fichiers vers un autre dossier, pendant ou après le
+    téléchargement ; un fichier déjà présent n'est jamais écrasé.
+  * Les fichiers incomplets se terminent par .part et reprennent leur vrai
+    nom une fois complets (option, active par défaut).
+  * Correction d'un plantage possible à la fin d'un déplacement.
+
+ -- Tof <nourpon@gmail.com>  Mon, 16 Nov 2026 17:27:05 +0000
+
 telemaque (1.0.3~noble1) noble; urgency=medium
 
   * Nouvel interrupteur dans Préférences → Général : « Application par

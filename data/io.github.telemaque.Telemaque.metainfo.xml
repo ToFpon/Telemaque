@@ -73,6 +73,16 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.4" date="2026-11-16">
+      <description>
+        <ul>
+          <li>Select several downloads with the round check boxes on the right, then pause, resume, move or remove them together (Ctrl+A, Esc, Delete)</li>
+          <li>Move the files of a download to another folder, during or after the download; an existing file is never overwritten</li>
+          <li>Incomplete files end with .part and get their real name back once complete (option, on by default)</li>
+          <li>Fixed a crash that could happen when a move finished</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.3" date="2026-11-16">
       <description>
         <ul>
