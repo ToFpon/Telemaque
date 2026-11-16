@@ -72,6 +72,13 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   (un téléchargement fini change de vue), page vide propre à la vue (`none`), titre du contenu = la vue,
   F9 / bouton = masquer (`sidebar_visible`, retenu seulement hors repli), vue retenue (`filter`). Fenêtre
   < 560 sp : barre repliée par-dessus la liste (Adw.Breakpoint), refermée après un choix.
+- Ligne d'un téléchargement (demande de Tof) : à gauche l'état (`status_text`, sans ratio), à droite sous la
+  barre « N sources · N pairs · ratio » (`peers_text` : sources = seeds reliés, pairs = les autres ; ratio
+  seul en pause / terminé, rien que les sources pendant la recherche des infos). En anglais : seeds / peers.
+- Barre d'état en bas (demande de Tof) : IP publique (`external_ip_alert` : celle du VPN s'il y en a un),
+  locale (`listen_succeeded_alert`), port + « joignable » (compteur `net.has_incoming_connections`), DHT
+  désactivé / connexion… / actif avec N nœuds (compteur `dht.dht_nodes`) ; compteurs par
+  `post_session_stats` à chaque relecture (`session.status()` est dépréciée). `Engine.network()` → `NetInfo`.
 - `ui/window.py` : liste (Gtk.ListBox boxed-list dans un Adw.Clamp, `TransferRow` : nom, barre, état,
   pause / reprise, menu Ouvrir / Afficher dans le dossier / Fichiers… / Supprimer…), accueil
   (Adw.StatusPage), Ctrl+O / Ctrl+V / glisser, question de fermeture (« Continuer en arrière-plan ? », case

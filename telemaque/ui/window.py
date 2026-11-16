@@ -30,18 +30,17 @@ def status_text(t) -> str:
     if t.state == "error":
         return tr("Erreur : {0}").format(t.error)
     if t.state == "metadata":
-        return tr("Recherche des informations du torrent…") + (
-            " — " + ntr("{0} source", "{0} sources", t.peers).format(t.peers) if t.peers else "")
+        return tr("Recherche des informations du torrent…")
     if t.state == "checking":
         return tr("Vérification des fichiers… {0}").format(fmt.percent(t.progress))
     if t.state == "paused":
         return tr("En pause — {0}").format(of)
     if t.state == "done":
-        return tr("Terminé — {0} · ratio {1}").format(fmt.size(t.size), _ratio(t.ratio))
+        return tr("Terminé — {0}").format(fmt.size(t.size))
     if t.state == "seeding":
-        return tr("Terminé, en partage — ↑ {0} · ratio {1}").format(fmt.speed(t.up_rate), _ratio(t.ratio))
+        return tr("Terminé, en partage — ↑ {0}").format(fmt.speed(t.up_rate))
     if t.down_rate <= 0:
-        return tr("{0} — en attente de sources ({1})").format(of, t.peers)
+        return tr("{0} — en attente de sources").format(of)
     text = tr("{0} — ↓ {1}").format(of, fmt.speed(t.down_rate))
     if t.eta >= 0:
         text += " — " + tr("{0} restantes").format(fmt.duration(t.eta))
@@ -59,6 +58,19 @@ def matches(filter_id: str, t) -> bool:
     if filter_id == "done":
         return t.complete
     return True
+
+
+def peers_text(t) -> str:
+    """À droite sous la barre : « 3 sources · 12 pairs · ratio 0,45 ». Sources = pairs qui ont tout
+    (seeds), pairs = les autres ; ceux auxquels on est relié en ce moment."""
+    parts = []
+    if t.state in ("metadata", "checking", "downloading", "seeding"):
+        others = max(0, t.peers - t.seeds)
+        parts.append(ntr("{0} source", "{0} sources", t.seeds).format(t.seeds))
+        parts.append(ntr("{0} pair", "{0} pairs", others).format(others))
+    if t.state != "metadata":
+        parts.append(tr("ratio {0}").format(_ratio(t.ratio)))
+    return " · ".join(parts)
 
 
 def ip_text(n) -> str:
@@ -99,10 +111,16 @@ class TransferRow(Gtk.ListBoxRow):
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True, valign=Gtk.Align.CENTER)
         self.name = Gtk.Label(xalign=0, ellipsize=2, css_classes=["heading"])        # … au milieu
         self.bar = Gtk.ProgressBar(css_classes=["transfer-progress"])
-        self.status = Gtk.Label(xalign=0, ellipsize=3, css_classes=["dim-label", "caption", "numeric"])
+        self.status = Gtk.Label(xalign=0, ellipsize=3, hexpand=True, css_classes=["dim-label", "caption", "numeric"])
+        self.peers = Gtk.Label(xalign=1, css_classes=["dim-label", "caption", "numeric"],
+                               tooltip_text=tr("Sources : pairs qui ont tout le fichier ; pairs : les autres. "
+                                               "Ceux auxquels Télémaque est relié en ce moment."))
+        line = Gtk.Box(spacing=12)
+        line.append(self.status)
+        line.append(self.peers)
         text.append(self.name)
         text.append(self.bar)
-        text.append(self.status)
+        text.append(line)
         box.append(text)
         self.toggle = Gtk.Button(valign=Gtk.Align.CENTER, css_classes=["flat", "circular"])
         self.toggle.connect("clicked", lambda *_: win.toggle_transfer(self.tid))
@@ -142,6 +160,7 @@ class TransferRow(Gtk.ListBoxRow):
         self.name.set_tooltip_text(shown(t.name))
         self.bar.set_fraction(t.progress)
         self.status.set_label(status_text(t))
+        self.peers.set_label(peers_text(t))
         for cls, on in (("paused", t.state in ("paused", "done")), ("error", t.state == "error"),
                         ("complete", t.complete)):
             (self.add_css_class if on else self.remove_css_class)(cls)

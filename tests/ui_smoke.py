@@ -244,8 +244,11 @@ def ajouter_un_torrent(win):
     yield Wait(3, until=lambda: notified)
     check(any(t.tid in n for n in notified), "notification de fin envoyée")
     row = win.rows[t.tid]
-    check(row.status.get_label().startswith(tr("Terminé, en partage — ↑ {0} · ratio {1}").split("{0}")[0]),
+    check(row.status.get_label().startswith(tr("Terminé, en partage — ↑ {0}").split("{0}")[0]),
           "ligne : « Terminé, en partage »")
+    from telemaque.ui.window import peers_text
+    check(row.peers.get_label() == peers_text(by_name("Série")) and tr("ratio {0}").split("{0}")[0] in row.peers.get_label(),
+          "à droite : sources, pairs, ratio")
 
 
 @step
@@ -358,7 +361,14 @@ def textes_d_etat(win):
     t.down_rate = 0
     from telemaque import format as fmt
     of = tr("{0} sur {1}").format(fmt.size(t.done), fmt.size(t.size))
-    check(status_text(t) == tr("{0} — en attente de sources ({1})").format(of, 4), "sans vitesse : en attente de sources")
+    check(status_text(t) == tr("{0} — en attente de sources").format(of), "sans vitesse : en attente de sources")
+    from telemaque.i18n import ntr
+    from telemaque.ui.window import peers_text
+    t.seeds = 1
+    from telemaque.ui.window import _ratio
+    check(peers_text(t) == " · ".join([ntr("{0} source", "{0} sources", 1).format(1),
+                                       ntr("{0} pair", "{0} pairs", 3).format(3), tr("ratio {0}").format(_ratio(0))]),
+          "sources · pairs · ratio")
 
 
 @step
