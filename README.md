@@ -32,6 +32,8 @@ Debian package, like its siblings [Odysseus](https://github.com/ToFpon/Odysseus)
   the selection (Ctrl+A, Esc, Delete).
 - **Move the files** to another folder, during or after the download (never over an existing file).
 - **Sharing**: stops at the ratio you choose (1.0 by default), never stops, or stops right away.
+- **Incomplete files end with .part** (like qBittorrent's .!qB): no confusion between a finished file and one
+  still downloading or paused; it gets its real name back as soon as it is complete (option, on by default).
 - Option: **delete the .torrent file** once added, to leave fewer files lying around.
 - **Speed limits**, port, DHT; a desktop notification when a download is finished; the computer does not
   suspend during a download.
@@ -73,6 +75,8 @@ Flatpak : un simple paquet Debian, comme ses frères [Odysseus](https://github.c
 - **Déplacer les fichiers** vers un autre dossier, pendant ou après le téléchargement (jamais par-dessus un
   fichier existant).
 - **Le partage** : s'arrête au ratio choisi (1,0 par défaut), ne s'arrête jamais, ou s'arrête tout de suite.
+- **Fichiers incomplets en .part** (comme le .!qB de qBittorrent) : pas de confusion entre un fichier fini et un
+  fichier en cours ou en pause ; il reprend son vrai nom dès qu'il est complet (option, active par défaut).
 - En option : **supprimer le fichier .torrent** une fois ajouté, pour laisser moins de fichiers qui traînent.
 - **Limites de vitesse**, port, DHT ; une notification du bureau à la fin d'un téléchargement ;
   l'ordinateur ne se met pas en veille pendant un téléchargement.

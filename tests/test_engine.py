@@ -355,6 +355,21 @@ class MoveTest(Base):
         self.engines.append(e2)
         self.assertEqual(e2.content_path(tid), os.path.join(dest, "Série"), "nouvel emplacement retenu")
 
+    def test_callback_polling_again_is_safe(self):
+        """Un rappel qui relance poll() (la fenêtre le fait) ne doit pas libérer les alertes en cours."""
+        e = self.leecher(part_ext=".part")
+        nested = []
+        e.on_changed = lambda: nested.append(len(e.poll()))
+        e.on_moved = lambda t, ok, msg: nested.append(len(e.poll()))
+        e.on_finished = lambda t: nested.append(len(e.poll()))
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete))
+        e.move(tid, os.path.join(self.dir, "ailleurs"))
+        self.assertTrue(until(self.engines, lambda: not e.moving(tid) and e.content_path(tid).startswith(
+            os.path.join(self.dir, "ailleurs"))))
+        self.assertTrue(nested)
+
     def test_move_never_overwrites(self):
         e = self.leecher()
         tid = e.add_torrent_file(self.torrent, self.dst)
@@ -374,6 +389,90 @@ class MoveTest(Base):
             self.assertEqual(fh.read(), "précieux", "jamais écrasé")
         self.assertEqual(e.content_path(tid), os.path.join(self.dst, "Série"), "rien n'a bougé")
         self.assertEqual(os.path.getsize(os.path.join(self.dst, "Série", "Épisode 1.mkv")), 3_000_000)
+
+
+def disk_names(root):
+    out = set()
+    for d, _dirs, files in os.walk(root):
+        out |= {os.path.relpath(os.path.join(d, f), root) for f in files}
+    return out
+
+
+class PartExtTest(Base):
+    EP = os.path.join("Série", "Épisode 1.mkv")
+
+    def slow_leecher(self, state="state-part", **kw):
+        e = Engine(os.path.join(self.dir, state), listen_port=port(), local_only=True, part_ext=".part", **kw)
+        self.engines.append(e)
+        return e
+
+    def test_part_during_then_real_name(self):
+        e = self.slow_leecher()
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        e.handles[tid].set_download_limit(300_000)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: self.EP + ".part" in disk_names(self.dst)))
+        self.assertNotIn(self.EP, disk_names(self.dst), "jamais le vrai nom tant qu'il est incomplet")
+        self.assertEqual({f.path for f in e.files(tid)} & {self.EP + ".part"}, set(), "vrais noms dans la liste")
+        e.handles[tid].set_download_limit(0)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete
+                              and disk_names(self.dst) == {os.path.join("Série", p) for p in
+                                                           ("Épisode 1.mkv", "Bonus/Making-of.mkv",
+                                                            "lisez-moi.txt")}, 30), disk_names(self.dst))
+        with open(os.path.join(self.content, "Épisode 1.mkv"), "rb") as a, open(os.path.join(self.dst, self.EP), "rb") as b:
+            self.assertEqual(a.read(), b.read())
+
+    def test_paused_restart_and_toggle(self):
+        state = "state-part2"
+        e = self.slow_leecher(state)
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        e.handles[tid].set_download_limit(300_000)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).done > 400_000))
+        e.pause(tid)
+        e.shutdown()
+        self.engines.remove(e)
+        self.assertIn(self.EP + ".part", disk_names(self.dst))
+        e2 = self.slow_leecher(state)
+        self.assertTrue(until(self.engines, lambda: e2.transfer(tid).state == "paused"))
+        until(self.engines, lambda: False, 1.0)
+        self.assertIn(self.EP + ".part", disk_names(self.dst), "en pause après redémarrage : toujours .part")
+        self.assertTrue(e2.content_path(tid).endswith("Série"))
+        e2.set_part_ext("")                                    # fonctionnalité coupée : vrais noms tout de suite
+        self.assertTrue(until(self.engines, lambda: self.EP in disk_names(self.dst)))
+        self.assertFalse(any(n.endswith(".part") for n in disk_names(self.dst)))
+        e2.set_part_ext(".part")
+        self.assertTrue(until(self.engines, lambda: self.EP + ".part" in disk_names(self.dst)))
+        e2.resume(tid)
+        self.link(e2, tid)
+        self.assertTrue(until(self.engines, lambda: e2.transfer(tid).complete and self.EP in disk_names(self.dst), 30))
+        self.assertFalse(any(n.endswith(".part") for n in disk_names(self.dst)), disk_names(self.dst))
+        self.assertEqual(os.path.getsize(os.path.join(self.dst, self.EP)), 3_000_000)
+
+    def test_single_file_content_path(self):
+        single = samples.make_torrent(os.path.join(self.content, "Épisode 1.mkv"),
+                                      os.path.join(self.dir, "un.torrent"))
+        self.seeder.add_torrent_file(single, self.content)
+        e = self.slow_leecher()
+        tid = e.add_torrent_file(single, self.dst)
+        e.handles[tid].set_download_limit(300_000)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: "Épisode 1.mkv.part" in disk_names(self.dst)))
+        self.assertTrue(until(self.engines, lambda: e.content_path(tid) == os.path.join(self.dst, "Épisode 1.mkv.part")))
+        e.handles[tid].set_download_limit(0)
+        self.assertTrue(until(self.engines, lambda: disk_names(self.dst) == {"Épisode 1.mkv"}, 30))
+        self.assertTrue(until(self.engines, lambda: e.content_path(tid) == os.path.join(self.dst, "Épisode 1.mkv")))
+
+    def test_unwanted_file_never_appears_as_complete(self):
+        e = self.slow_leecher()
+        info = eng.read_torrent(self.torrent)
+        small = [f.index for f in info.files if f.path.endswith("lisez-moi.txt")]
+        tid = e.add_torrent_file(self.torrent, self.dst, wanted=small)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete
+                              and os.path.join("Série", "lisez-moi.txt") in disk_names(self.dst)))
+        until(self.engines, lambda: False, 0.5)
+        self.assertNotIn(self.EP, disk_names(self.dst), "fichier décoché : jamais sous son vrai nom")
 
 
 class PersistTest(Base):

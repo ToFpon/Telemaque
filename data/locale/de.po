@@ -12,27 +12,27 @@ msgstr ""
 msgid "Afficher la version"
 msgstr "Version anzeigen"
 
-#: telemaque/app.py:238
+#: telemaque/app.py:248
 msgid "Téléchargement terminé"
 msgstr "Download abgeschlossen"
 
-#: telemaque/app.py:243 telemaque/ui/window.py:137
+#: telemaque/app.py:253 telemaque/ui/window.py:137
 msgid "Ouvrir"
 msgstr "Öffnen"
 
-#: telemaque/app.py:244 telemaque/ui/window.py:138
+#: telemaque/app.py:254 telemaque/ui/window.py:138
 msgid "Afficher dans le dossier"
 msgstr "Im Ordner anzeigen"
 
-#: telemaque/app.py:299
+#: telemaque/app.py:309
 msgid "Moteur"
 msgstr "Engine"
 
-#: telemaque/app.py:167
+#: telemaque/app.py:177
 msgid "Téléchargement en cours"
 msgstr "Download läuft"
 
-#: telemaque/app.py:295
+#: telemaque/app.py:305
 msgid "Un client BitTorrent tout simple pour GNOME."
 msgstr "Ein einfacher BitTorrent-Client für GNOME."
 
@@ -65,29 +65,43 @@ msgstr ""
 "sonst nur das, was Tracker und DHT melden"
 
 #: telemaque/features.py:33
+msgid "Extension .part pour les fichiers incomplets"
+msgstr "Endung .part für unvollständige Dateien"
+
+#: telemaque/features.py:34
+msgid ""
+"Un fichier en cours ou en pause se termine par .part : impossible de le "
+"confondre avec un fichier complet. Il reprend son vrai nom dès qu'il est "
+"complet"
+msgstr ""
+"Eine Datei, die gerade heruntergeladen wird oder pausiert ist, endet auf "
+".part und ist so nicht mit einer vollständigen Datei zu verwechseln. Sobald "
+"sie vollständig ist, erhält sie ihren richtigen Namen zurück"
+
+#: telemaque/features.py:37
 msgid "Supprimer le fichier .torrent après l'ajout"
 msgstr ".torrent-Datei nach dem Hinzufügen löschen"
 
-#: telemaque/features.py:34
+#: telemaque/features.py:38
 msgid ""
 "Moins de fichiers qui traînent : Télémaque garde tout ce qu'il faut de son "
 "côté"
 msgstr "Weniger herumliegende Dateien: Télémaque behält alles Nötige bei sich"
 
-#: telemaque/features.py:36
+#: telemaque/features.py:40
 msgid "Prévenir à la fin d'un téléchargement"
 msgstr "Benachrichtigen, wenn ein Download fertig ist"
 
-#: telemaque/features.py:37
+#: telemaque/features.py:41
 msgid ""
 "Une notification du bureau, avec « Ouvrir » et « Afficher dans le dossier »"
 msgstr "Eine Desktop-Benachrichtigung mit „Öffnen“ und „Im Ordner anzeigen“"
 
-#: telemaque/features.py:39
+#: telemaque/features.py:43
 msgid "Empêcher la mise en veille"
 msgstr "Bereitschaft verhindern"
 
-#: telemaque/features.py:40
+#: telemaque/features.py:44
 msgid ""
 "L'ordinateur ne se met pas en veille tant qu'un téléchargement est en cours"
 msgstr "Der Computer geht nicht in Bereitschaft, solange ein Download läuft"

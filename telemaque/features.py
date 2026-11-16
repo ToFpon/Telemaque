@@ -30,6 +30,10 @@ FEATURES = [
             tr("Au démarrage et quand le réseau change (VPN activé ou coupé), demander l'adresse IPv4 et IPv6 "
                "à ipify.org pour la barre d'état ; sinon, seulement ce que les trackers et le DHT renvoient"),
             "network-workgroup-symbolic"),
+    Feature("part_suffix", tr("Extension .part pour les fichiers incomplets"),
+            tr("Un fichier en cours ou en pause se termine par .part : impossible de le confondre avec un "
+               "fichier complet. Il reprend son vrai nom dès qu'il est complet"),
+            "document-save-symbolic"),
     Feature("delete_torrent", tr("Supprimer le fichier .torrent après l'ajout"),
             tr("Moins de fichiers qui traînent : Télémaque garde tout ce qu'il faut de son côté"),
             "user-trash-symbolic", default=False),

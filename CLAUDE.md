@@ -16,7 +16,7 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   @error_color).
 - Dialogues : de vraies fenêtres (`common.AlertDialog`, `common.DialogWindow`, `Adw.PreferencesWindow`,
   `Adw.AboutWindow`).
-- Chaque fonctionnalité facultative est dans `telemaque/features.py` (tray, public_ip, delete_torrent, notify, inhibit) et se consulte au
+- Chaque fonctionnalité facultative est dans `telemaque/features.py` (tray, public_ip, part_suffix, delete_torrent, notify, inhibit) et se consulte au
   moment de l'usage.
 - Tout texte visible passe par `tr()` / `ntr()`. Après modification : `python3.12 tools/update-pot.py`,
   compléter `data/locale/en.po` et `de.po`, puis `msgfmt -c --statistics` et `msgcmp`.
@@ -102,6 +102,17 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   (refus, fichiers laissés en place, alerte), pendant ou après le téléchargement ; état « moving » (pause et
   « Déplacer » grisés) jusqu'à `storage_moved(_failed)_alert` → `on_moved` ; nouvel emplacement retenu par les
   données de reprise (testé après redémarrage). Testé : `MoveTest`, `selection_multiple` d'ui_smoke.
+- Fichiers incomplets en « .part » (fonctionnalité `part_suffix`, active par défaut, demande de Tof ; comme le
+  « .!qB » de qBittorrent) : `Engine(part_ext=…)` / `set_part_ext` (coupée → vrais noms tout de suite),
+  `_sync_names` : `rename_file` vers `orig_files()` + ext tant que `file_progress` < taille ; appelé à l'ajout,
+  aux métadonnées, `file_completed_alert` (catégorie file_progress du masque), `torrent_checked_alert`, fin,
+  `set_wanted`, fin de déplacement ; jamais pendant une vérification ni un déplacement. Noms gardés par les
+  données de reprise. `files()` montre les vrais noms, `content_path` d'un fichier seul = son nom du moment.
+  Testé : `PartExtTest` (pause + redémarrage, coupure, fichier seul, fichier décoché), `extension_part` d'ui_smoke.
+- PIÈGE libtorrent : une alerte ne vit que jusqu'au `pop_alerts()` suivant. Un rappel (`on_moved` → la fenêtre
+  → `refresh()` → `poll()`) qui relançait la lecture des alertes PENDANT la boucle libérait les suivantes →
+  segfault (`polymorphic_id_generator<alert>`, vu sous gdb). `_handle_alerts` refuse la réentrée (`_in_alerts`) ;
+  testé par `test_callback_polling_again_is_safe`.
 - `ui/dialogs.py` : `AddDialog` (dossier, « Ajouter en pause », fichiers à cocher ; lien magnet : pas
   encore de fichiers), `MagnetEntryDialog` (prérempli depuis le presse-papiers), `FilesDialog` (cocher en
   cours de route, avancement par fichier). `ui/preferences.py` : Général (dossier, fermeture, partage,

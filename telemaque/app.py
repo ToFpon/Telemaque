@@ -79,7 +79,9 @@ class TelemaqueApp(Adw.Application):
             self.engine = Engine(os.path.join(STATE_ROOT, "torrents"), listen_port=settings["listen_port"],
                                  dht=settings["dht"], seed_policy=settings["seed_policy"],
                                  seed_ratio=settings["seed_ratio"], down_limit=settings["down_limit"],
-                                 up_limit=settings["up_limit"])
+                                 up_limit=settings["up_limit"], part_ext=self._part_ext())
+        else:
+            self.engine.set_part_ext(self._part_ext())
         self.engine.on_finished = self._on_finished
         self.engine.on_moved = lambda tid, ok, msg: self.window is not None and self.window.moved(tid, ok, msg)
         # VPN coupé ou remis, autre réseau : les adresses publiques sont à revérifier (Tof). Le signal arrive
@@ -122,9 +124,17 @@ class TelemaqueApp(Adw.Application):
             GLib.idle_add(apply)
         publicip.lookup(done)
 
+    @staticmethod
+    def _part_ext() -> str:
+        return ".part" if features.enabled("part_suffix") else ""
+
     def _on_setting(self, key, value):
         e = self.engine
         if e is None:
+            return
+        if key == "features":
+            if e.part_ext != self._part_ext():
+                e.set_part_ext(self._part_ext())
             return
         if key in ("down_limit", "up_limit"):
             e.set_limits(settings["down_limit"], settings["up_limit"])

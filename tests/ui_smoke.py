@@ -241,6 +241,9 @@ def ajouter_un_torrent(win):
     check(t is not None and t.complete, "téléchargé (échange local)")
     check(os.path.getsize(os.path.join(DST, "Série", "Épisode 1.mkv")) == 3_000_000, "fichier complet sur le disque")
     check(not os.path.exists(os.path.join(DST, "Série", "Bonus", "Making-of.mkv")), "fichier décoché : pas téléchargé")
+    yield Wait(3, until=lambda: not any(n.endswith(".part") for _d, _s, fs in os.walk(DST) for n in fs))
+    check(app.engine.part_ext == ".part", "fonctionnalité « .part » active par défaut")
+    check(not any(n.endswith(".part") for _d, _s, fs in os.walk(DST) for n in fs), "complet : plus de « .part »")
     yield Wait(3, until=lambda: notified)
     check(any(t.tid in n for n in notified), "notification de fin envoyée")
     row = win.rows[t.tid]
@@ -283,6 +286,16 @@ def pause_reprise(win):
     leecher.connect_peer(t.tid, "127.0.0.1", SEED_PORT)
     yield Wait(5, until=lambda: by_name("Série").state == "seeding")
     check(by_name("Série").state == "seeding", "reprise (partage)")
+
+
+@step
+def extension_part(win):
+    from telemaque import features
+    features.set_enabled("part_suffix", False)
+    check(app.engine.part_ext == "", "« .part » coupé sans redémarrage")
+    features.set_enabled("part_suffix", True)
+    check(app.engine.part_ext == ".part", "« .part » remis")
+    yield pump(0.1)
 
 
 @step

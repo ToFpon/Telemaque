@@ -141,8 +141,11 @@ def is_magnet(text: str) -> bool:
 
 class Engine:
     def __init__(self, state_dir: str, *, listen_port: int = 6881, dht: bool = True, local_only: bool = False,
-                 seed_policy: str = "ratio", seed_ratio: float = 1.0, down_limit: int = 0, up_limit: int = 0):
-        """local_only : pour les tests — écoute sur 127.0.0.1, ni DHT, ni découverte locale, ni UPnP."""
+                 seed_policy: str = "ratio", seed_ratio: float = 1.0, down_limit: int = 0, up_limit: int = 0,
+                 part_ext: str = ""):
+        """local_only : pour les tests — écoute sur 127.0.0.1, ni DHT, ni découverte locale, ni UPnP.
+        part_ext : extension des fichiers incomplets (« .part »), vide = noms définitifs dès le début."""
+        self.part_ext = part_ext
         self.state_dir = state_dir
         os.makedirs(state_dir, exist_ok=True)
         self.seed_policy = seed_policy
@@ -155,7 +158,8 @@ class Engine:
             "enable_lsd": not local_only,
             "enable_upnp": not local_only,
             "enable_natpmp": not local_only,
-            "alert_mask": (lt.alert_category.error | lt.alert_category.status | lt.alert_category.storage),
+            "alert_mask": (lt.alert_category.error | lt.alert_category.status | lt.alert_category.storage
+                           | lt.alert_category.file_progress),
             "user_agent": "Telemaque/0.1 libtorrent/" + lt.__version__,
             "download_rate_limit": max(0, int(down_limit)) * 1024,
             "upload_rate_limit": max(0, int(up_limit)) * 1024,
@@ -175,6 +179,7 @@ class Engine:
         # déplacement fini : on_moved(tid, ok, message) — message d'erreur de libtorrent si raté
         self.on_moved: Optional[Callable[[str, bool, str], None]] = None
         self._moving: set[str] = set()
+        self._in_alerts = False
         self.errors: list[str] = []
         self.dht_enabled = bool(pack["enable_dht"])
         # libtorrent annonce l'adresse publique famille par famille (external_ip_alert) : garder les deux,
@@ -255,6 +260,7 @@ class Engine:
         self.handles[tid] = h
         self.meta[tid] = meta or {"added": time.time()}
         self._save_meta()
+        self._sync_names(tid)
         self._request_save(tid)
         if self.on_changed:
             self.on_changed()
@@ -325,6 +331,41 @@ class Engine:
     def moving(self, tid: str) -> bool:
         return tid in self._moving
 
+    # -- fichiers incomplets (« .part ») ---------------------------------------------------------
+    def set_part_ext(self, ext: str):
+        """Extension des fichiers incomplets changée (fonctionnalité coupée ou remise) : appliquée tout de
+        suite à tous les téléchargements."""
+        self.part_ext = ext
+        for tid in list(self.handles):
+            self._sync_names(tid)
+
+    def _sync_names(self, tid: str):
+        """Comme qBittorrent (« .!qB ») : un fichier pas encore complet porte l'extension `part_ext` sur le
+        disque, il reprend son vrai nom dès qu'il est complet — jamais de confusion entre un fichier fini et
+        un fichier en cours ou en pause. libtorrent renomme lui-même (fichier ouvert compris) et retient les
+        noms dans les données de reprise. Rien pendant une vérification (avancement pas encore connu) ni
+        pendant un déplacement."""
+        h = self.handles.get(tid)
+        if h is None or not h.is_valid() or tid in self._moving:
+            return
+        st = h.status()
+        S = lt.torrent_status.states
+        if not st.has_metadata or st.state in (S.checking_files, S.checking_resume_data):
+            return
+        ti = h.torrent_file()
+        if ti is None:
+            return
+        fs, orig = ti.files(), ti.orig_files()
+        progress = h.file_progress()
+        for i in range(fs.num_files()):
+            if _is_pad(fs, i):
+                continue
+            base = orig.file_path(i)
+            complete = i < len(progress) and progress[i] >= fs.file_size(i)
+            want = base + self.part_ext if self.part_ext and not complete else base
+            if fs.file_path(i) != want:
+                h.rename_file(i, want)
+
     def remove(self, tid: str, delete_files: bool = False):
         h = self.handles.pop(tid, None)
         if h is None:
@@ -349,14 +390,14 @@ class Engine:
         ti = h.torrent_file()
         if ti is None:
             return []
-        fs = ti.files()
+        fs, orig = ti.files(), ti.orig_files()
         prio = h.get_file_priorities()
         progress = h.file_progress()
         out = []
         for i in range(fs.num_files()):
             if _is_pad(fs, i):
                 continue
-            out.append(FileEntry(i, fs.file_path(i), fs.file_size(i),
+            out.append(FileEntry(i, orig.file_path(i), fs.file_size(i),
                                  progress[i] if i < len(progress) else 0,
                                  (prio[i] if i < len(prio) else 4) > 0))
         return out
@@ -366,6 +407,7 @@ class Engine:
         if h is None:
             return
         h.file_priority(index, 4 if wanted else 0)
+        self._sync_names(tid)
         if wanted:
             self._find_sources(h)        # complet, il avait laissé partir les sources complètes
         m = self.meta.get(tid, {})
@@ -395,6 +437,12 @@ class Engine:
         if h is None:
             return ""
         st = h.status()
+        ti = h.torrent_file() if st.has_metadata else None
+        if ti is not None:                   # un seul fichier : son nom du moment (« x.mkv.part » en cours)
+            fs = ti.files()
+            real = [i for i in range(fs.num_files()) if not _is_pad(fs, i)]
+            if len(real) == 1 and os.sep not in fs.file_path(real[0]).rstrip(os.sep):
+                return os.path.join(st.save_path, fs.file_path(real[0]))
         return os.path.join(st.save_path, st.name) if st.name else st.save_path
 
     # -- état ----------------------------------------------------------------------------------
@@ -523,7 +571,19 @@ class Engine:
         return None
 
     def _handle_alerts(self):
-        for a in self.session.pop_alerts():
+        # Une alerte de libtorrent ne vit que jusqu'au pop_alerts() suivant. Un rappel (on_moved, on_finished,
+        # on_changed) qui relance poll() pendant la boucle libérait les alertes pas encore lues : plantage
+        # (segfault dans polymorphic_id_generator<alert>, vu avec « .part » et un déplacement). Pas de réentrée.
+        if self._in_alerts:
+            return
+        self._in_alerts = True
+        try:
+            self._handle_alert_list(self.session.pop_alerts())
+        finally:
+            self._in_alerts = False
+
+    def _handle_alert_list(self, alerts):
+        for a in alerts:
             if isinstance(a, lt.save_resume_data_alert):
                 tid = self._find(a.handle)
                 if tid is not None:
@@ -536,6 +596,7 @@ class Engine:
                 tid = self._find(a.handle)
                 if tid is None:
                     continue
+                self._sync_names(tid)
                 self._request_save(tid)
                 m = self.meta.setdefault(tid, {})
                 if not m.get("notified"):
@@ -550,14 +611,22 @@ class Engine:
                 self._moving.discard(tid)
                 ok = isinstance(a, lt.storage_moved_alert)
                 if ok:
+                    self._sync_names(tid)                  # fichiers finis pendant le déplacement
                     self._request_save(tid)                # nouvel emplacement retenu au redémarrage
                 if self.on_moved:
                     self.on_moved(tid, ok, "" if ok else a.message())
+            elif isinstance(a, (lt.file_completed_alert, lt.torrent_checked_alert)):
+                tid = self._find(a.handle)
+                if tid is not None:
+                    self._sync_names(tid)
+            elif isinstance(a, lt.file_rename_failed_alert):
+                self.errors.append(a.message())
             elif isinstance(a, lt.metadata_received_alert):
                 tid = self._find(a.handle)
                 if tid is not None:
                     self.meta.setdefault(tid, {})["name"] = a.handle.status().name
                     self._save_meta()
+                    self._sync_names(tid)
                     self._request_save(tid)
                     if self.on_changed:
                         self.on_changed()
