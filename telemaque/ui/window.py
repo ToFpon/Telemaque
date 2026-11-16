@@ -74,13 +74,15 @@ def peers_text(t) -> str:
 
 
 def ip_text(n) -> str:
-    """« IP publique : 82.65.1.2 · locale : 192.168.1.20 · port 6881 (joignable) »."""
+    """« IPv4 : 82.65.1.2 · IPv6 : 2a01:e0a::1 · port 6881 (joignable) » : les adresses PUBLIQUES (celles
+    du VPN s'il y en a un), une par famille ; la locale ne sert à rien ici (choix de Tof)."""
     if n.listen_error:
         return tr("Port {0} indisponible : {1}").format(n.port, n.listen_error)
-    parts = [tr("IP publique : {0}").format(n.external_ip) if n.external_ip
-             else tr("IP publique : pas encore connue")]
-    if n.local_ips:
-        parts.append(tr("locale : {0}").format(", ".join(n.local_ips)))
+    if not n.ipv4 and not n.ipv6:
+        parts = [tr("IP publique : pas encore connue")]
+    else:
+        unknown = tr("pas encore connue")
+        parts = [tr("IPv4 : {0}").format(n.ipv4 or unknown), tr("IPv6 : {0}").format(n.ipv6 or unknown)]
     port = tr("port {0}").format(n.port)
     if n.reachable:
         port += " " + tr("(joignable)")
@@ -239,11 +241,10 @@ class MainWindow(Adw.ApplicationWindow):
         tv.set_content(self.stack)
         # barre d'état : par où passe Télémaque (VPN ?) et si le DHT travaille
         status = Gtk.Box(spacing=12, css_classes=["telemaque-status"])
+        self._ip_help = tr("Adresse publique : celle que voient les autres (celle du VPN, s'il y en a un). "
+                           "« Joignable » : des connexions entrantes arrivent, le port est ouvert.")
         self.ip_label = Gtk.Label(xalign=0, hexpand=True, ellipsize=3, selectable=False,
-                                  css_classes=["dim-label", "caption", "numeric"],
-                                  tooltip_text=tr("Adresse publique : celle que voient les autres (celle du VPN, "
-                                                  "s'il y en a un). « Joignable » : des connexions entrantes "
-                                                  "arrivent, le port est ouvert."))
+                                  css_classes=["dim-label", "caption", "numeric"], tooltip_text=self._ip_help)
         self.dht_icon = Gtk.Image(icon_name="network-transmit-receive-symbolic", css_classes=["dim-label"])
         self.dht_label = Gtk.Label(xalign=1, css_classes=["dim-label", "caption", "numeric"],
                                    tooltip_text=tr("Le DHT trouve des sources sans tracker ; indispensable aux liens "
@@ -441,6 +442,7 @@ class MainWindow(Adw.ApplicationWindow):
         if n is None:
             return
         self.ip_label.set_label(ip_text(n))
+        self.ip_label.set_tooltip_text(ip_text(n) + "\n\n" + self._ip_help)
         (self.ip_label.add_css_class if n.listen_error else self.ip_label.remove_css_class)("error")
         self.dht_label.set_label(dht_text(n))
         self.dht_icon.set_from_icon_name("network-transmit-receive-symbolic" if n.dht_enabled and n.dht_nodes

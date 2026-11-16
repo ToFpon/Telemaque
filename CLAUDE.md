@@ -75,8 +75,9 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
 - Ligne d'un téléchargement (demande de Tof) : à gauche l'état (`status_text`, sans ratio), à droite sous la
   barre « N sources · N pairs · ratio » (`peers_text` : sources = seeds reliés, pairs = les autres ; ratio
   seul en pause / terminé, rien que les sources pendant la recherche des infos). En anglais : seeds / peers.
-- Barre d'état en bas (demande de Tof) : IP publique (`external_ip_alert` : celle du VPN s'il y en a un),
-  locale (`listen_succeeded_alert`), port + « joignable » (compteur `net.has_incoming_connections`), DHT
+- Barre d'état en bas (demande de Tof) : IP publiques IPv4 ET IPv6 (`external_ip_alert`, annoncée famille par
+  famille → `note_external_ip` garde les deux ; avant, l'IPv6 remplaçait l'IPv4 ; celles du VPN s'il y en a un ;
+  pas d'IP locale, choix de Tof), port + « joignable » (compteur `net.has_incoming_connections`), DHT
   désactivé / connexion… / actif avec N nœuds (compteur `dht.dht_nodes`) ; compteurs par
   `post_session_stats` à chaque relecture (`session.status()` est dépréciée). `Engine.network()` → `NetInfo`.
 - `ui/window.py` : liste (Gtk.ListBox boxed-list dans un Adw.Clamp, `TransferRow` : nom, barre, état,

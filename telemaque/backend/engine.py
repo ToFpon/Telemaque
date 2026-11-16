@@ -58,8 +58,9 @@ class TorrentInfo:
 @dataclass
 class NetInfo:
     """Barre d'état : par où passe Télémaque (utile derrière un VPN) et si le DHT travaille."""
-    external_ip: str = ""         # adresse publique vue par les trackers / le DHT ("" : pas encore connue)
-    local_ips: list = field(default_factory=list)
+    # adresses publiques vues par les trackers / le DHT, une par famille ("" : pas encore connue)
+    ipv4: str = ""
+    ipv6: str = ""
     port: int = 0
     reachable: bool = False       # des connexions entrantes arrivent : le port est ouvert
     dht_enabled: bool = False
@@ -171,8 +172,10 @@ class Engine:
         self.on_changed: Optional[Callable[[], None]] = None         # liste changée (ajout, retrait, métadonnées)
         self.errors: list[str] = []
         self.dht_enabled = bool(pack["enable_dht"])
-        self.external_ip = ""
-        self.local_ips: list[str] = []
+        # libtorrent annonce l'adresse publique famille par famille (external_ip_alert) : garder les deux,
+        # sinon la dernière annoncée (souvent l'IPv6) remplaçait l'autre (vu chez Tof)
+        self.ipv4 = ""
+        self.ipv6 = ""
         self.listen_error = ""
         self.stats: dict = {}
         self._load()
@@ -188,7 +191,7 @@ class Engine:
         self.session.apply_settings({"listen_interfaces": f"0.0.0.0:{listen_port},[::]:{listen_port}",
                                      "enable_dht": bool(dht)})
         self.dht_enabled = bool(dht)
-        self.local_ips, self.listen_error = [], ""
+        self.listen_error = ""
 
     def listen_port(self) -> int:
         return self.session.listen_port()
@@ -411,9 +414,15 @@ class Engine:
                         has_metadata=st.has_metadata, complete=complete)
 
     # -- boucle --------------------------------------------------------------------------------
+    def note_external_ip(self, ip: str):
+        if ":" in ip:
+            self.ipv6 = ip
+        elif ip:
+            self.ipv4 = ip
+
     def network(self) -> NetInfo:
         st = self.stats
-        return NetInfo(external_ip=self.external_ip, local_ips=list(self.local_ips), port=self.listen_port(),
+        return NetInfo(ipv4=self.ipv4, ipv6=self.ipv6, port=self.listen_port(),
                        reachable=bool(st.get("net.has_incoming_connections", 0)),
                        dht_enabled=self.dht_enabled, dht_nodes=int(st.get("dht.dht_nodes", 0)),
                        listen_error=self.listen_error)
@@ -489,11 +498,8 @@ class Engine:
                 if isinstance(values, dict):
                     self.stats = values
             elif isinstance(a, lt.external_ip_alert):
-                self.external_ip = str(a.external_address)
+                self.note_external_ip(str(a.external_address))
             elif isinstance(a, lt.listen_succeeded_alert):
-                ip = str(a.address)
-                if ip not in ("127.0.0.1", "::1") and ip not in self.local_ips:
-                    self.local_ips.append(ip)
                 self.listen_error = ""
             elif isinstance(a, lt.listen_failed_alert):
                 self.listen_error = a.message()

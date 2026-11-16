@@ -261,6 +261,22 @@ class ExtrasTest(Base):
         self.assertFalse(e.paused_all(tid))
 
 
+class NetworkTest(unittest.TestCase):
+    def test_both_families_kept(self):
+        """libtorrent annonce l'adresse publique famille par famille : l'IPv6 ne remplace plus l'IPv4."""
+        e = Engine(tempfile.mkdtemp(dir=TMP), listen_port=port(), local_only=True)
+        try:
+            e.note_external_ip("82.65.1.2")
+            e.note_external_ip("2a01:e0a:1::5")
+            e.note_external_ip("")
+            n = e.network()
+            self.assertEqual((n.ipv4, n.ipv6), ("82.65.1.2", "2a01:e0a:1::5"))
+            e.note_external_ip("82.65.9.9")              # changée (box redémarrée) : remplacée
+            self.assertEqual(e.network().ipv4, "82.65.9.9")
+        finally:
+            e.session.pause()
+
+
 class PersistTest(Base):
     def test_restart(self):
         """Fermé en plein téléchargement puis relancé : la liste revient, la pause aussi, et le
