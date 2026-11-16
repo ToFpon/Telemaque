@@ -53,6 +53,11 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   « app.show-transfer::<id> » — PyGObject n'a pas `set_default_action_and_target_value`), inhibition de la
   veille pendant un téléchargement, HANDLES_OPEN (fichiers .torrent, URI magnet:), `--version` répondu
   avant GTK. Moteur injectable (`TelemaqueApp(engine=…)`) pour les tests.
+- Barre latérale (idée de Tof) : Adw.OverlaySplitView, vues Tous / En cours (pas complets, pause comprise) /
+  Terminés (complets) avec leur nombre (`FILTERS`, `matches`), filtre du Gtk.ListBox relancé à chaque relecture
+  (un téléchargement fini change de vue), page vide propre à la vue (`none`), titre du contenu = la vue,
+  F9 / bouton = masquer (`sidebar_visible`, retenu seulement hors repli), vue retenue (`filter`). Fenêtre
+  < 560 sp : barre repliée par-dessus la liste (Adw.Breakpoint), refermée après un choix.
 - `ui/window.py` : liste (Gtk.ListBox boxed-list dans un Adw.Clamp, `TransferRow` : nom, barre, état,
   pause / reprise, menu Ouvrir / Afficher dans le dossier / Fichiers… / Supprimer…), accueil
   (Adw.StatusPage), Ctrl+O / Ctrl+V / glisser, question de fermeture (« Continuer en arrière-plan ? », case

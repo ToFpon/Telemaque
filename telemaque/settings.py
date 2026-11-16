@@ -42,9 +42,11 @@ DEFAULTS: dict[str, Any] = {
     "dht": True,                    # trouver des sources sans tracker (indispensable aux liens magnet)
     "on_close": "ask",              # ask, background, quit — fermer la fenêtre pendant un téléchargement
     # Fenêtre
-    "window_width": 720,
+    "window_width": 880,
     "window_height": 520,
     "window_maximized": False,
+    "sidebar_visible": True,
+    "filter": "all",                # vue de la barre latérale : all, active, done
     "features": {},                 # fonctionnalités activées / désactivées (voir features.py)
 }
 

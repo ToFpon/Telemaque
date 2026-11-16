@@ -25,6 +25,7 @@ Debian package, like its siblings [Odysseus](https://github.com/ToFpon/Odysseus)
   drag and drop, or straight from Firefox and your file manager.
 - **Before starting**: choose the folder and the files to keep (uncheck the bonus of a season pack).
   Files can also be checked or unchecked during the download.
+- **Sidebar**: All, In Progress, Finished, with their count.
 - **The list**: progress, speed, time left; pause, resume, remove (with or without the files);
   open the result or show it in its folder.
 - **Sharing**: stops at the ratio you choose (1.0 by default), never stops, or stops right away.
@@ -54,6 +55,7 @@ Flatpak : un simple paquet Debian, comme ses frères [Odysseus](https://github.c
   glisser-déposer, ou directement depuis Firefox et le gestionnaire de fichiers.
 - **Avant de lancer** : le dossier et les fichiers à garder (décocher les bonus d'un pack de saison). On
   peut aussi cocher ou décocher des fichiers en cours de route.
+- **Barre latérale** : Tous, En cours, Terminés, avec leur nombre.
 - **La liste** : progression, vitesse, temps restant ; pause, reprise, suppression (avec ou sans les
   fichiers) ; ouvrir le résultat ou l'afficher dans son dossier.
 - **Le partage** : s'arrête au ratio choisi (1,0 par défaut), ne s'arrête jamais, ou s'arrête tout de suite.

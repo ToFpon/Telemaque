@@ -53,7 +53,7 @@ DST = os.path.join(TMP, "Téléchargements")
 SRC = os.path.join(TMP, "partage")
 os.makedirs(DST)
 settings["download_dir"] = DST
-settings["window_width"], settings["window_height"] = map(int, str(args.get("size", "760x520")).split("x"))
+settings["window_width"], settings["window_height"] = map(int, str(args.get("size", "900x520")).split("x"))
 if args.get("dark"):
     settings["theme"] = "dark"
 

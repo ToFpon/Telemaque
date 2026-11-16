@@ -12,7 +12,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
 
 from .. import APP_ID, APP_NAME, format as fmt  # noqa: E402
 from ..backend import engine as eng  # noqa: E402
@@ -46,6 +46,19 @@ def status_text(t) -> str:
     if t.eta >= 0:
         text += " — " + tr("{0} restantes").format(fmt.duration(t.eta))
     return text
+
+
+FILTERS = (("all", tr("Tous"), "view-list-symbolic"),
+           ("active", tr("En cours"), "folder-download-symbolic"),
+           ("done", tr("Terminés"), "object-select-symbolic"))
+
+
+def matches(filter_id: str, t) -> bool:
+    if filter_id == "active":
+        return not t.complete
+    if filter_id == "done":
+        return t.complete
+    return True
 
 
 def _ratio(r: float) -> str:
@@ -132,11 +145,15 @@ class MainWindow(Adw.ApplicationWindow):
         self.rows: dict[str, TransferRow] = {}
         self.files_dialogs: dict = {}
 
+        self.filter = settings["filter"] if settings["filter"] in [f[0] for f in FILTERS] else "all"
         self.toast_overlay = Adw.ToastOverlay()
         tv = Adw.ToolbarView()
         header = Adw.HeaderBar()
         self.title_widget = Adw.WindowTitle(title=APP_NAME)
         header.set_title_widget(self.title_widget)
+        self.sidebar_button = Gtk.ToggleButton(icon_name="sidebar-show-symbolic",
+                                               tooltip_text=tr("Barre latérale (F9)"))
+        header.pack_start(self.sidebar_button)
         add = Gtk.Button(icon_name="list-add-symbolic", tooltip_text=tr("Ouvrir un fichier torrent (Ctrl+O)"),
                          action_name="win.open")
         header.pack_start(add)
@@ -175,8 +192,48 @@ class MainWindow(Adw.ApplicationWindow):
         scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
         scroller.set_child(clamp)
         self.stack.add_named(scroller, "list")
+        self.none = Adw.StatusPage(icon_name=APP_ID + "-symbolic")
+        self.stack.add_named(self.none, "none")
         tv.set_content(self.stack)
-        self.toast_overlay.set_child(tv)
+        self.list.set_filter_func(lambda row: matches(self.filter, row.transfer))
+
+        # barre latérale : Tous / En cours / Terminés, avec leur nombre
+        side = Adw.ToolbarView()
+        side_header = Adw.HeaderBar()
+        side_header.set_title_widget(Adw.WindowTitle(title=APP_NAME))
+        side.add_top_bar(side_header)
+        self.side_list = Gtk.ListBox(css_classes=["navigation-sidebar"])
+        self.side_rows: dict = {}
+        self.side_counts: dict = {}
+        for fid, label, icon in FILTERS:
+            row = Gtk.ListBoxRow()
+            row.fid = fid
+            box = Gtk.Box(spacing=12, margin_start=6, margin_end=6)
+            box.append(Gtk.Image(icon_name=icon))
+            box.append(Gtk.Label(label=label, xalign=0, hexpand=True, ellipsize=3))
+            count = Gtk.Label(css_classes=["dim-label", "numeric"])
+            box.append(count)
+            row.set_child(box)
+            self.side_list.append(row)
+            self.side_rows[fid] = row
+            self.side_counts[fid] = count
+        self.side_list.select_row(self.side_rows[self.filter])
+        self.title_widget.set_title(dict((f[0], f[1]) for f in FILTERS)[self.filter])
+        self.side_list.connect("row-selected", self._on_filter_row)
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        scroll.set_child(self.side_list)
+        side.set_content(scroll)
+
+        self.split = Adw.OverlaySplitView(sidebar=side, content=tv, min_sidebar_width=180, max_sidebar_width=240,
+                                          show_sidebar=settings["sidebar_visible"])
+        self.split.bind_property("show-sidebar", self.sidebar_button, "active",
+                                 GObject.BindingFlags.SYNC_CREATE | GObject.BindingFlags.BIDIRECTIONAL)
+        self.split.connect("notify::show-sidebar", self._on_sidebar_shown)
+        # fenêtre étroite : la barre passe par-dessus la liste et se referme après un choix
+        narrow = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 560sp"))
+        narrow.add_setter(self.split, "collapsed", True)
+        self.add_breakpoint(narrow)
+        self.toast_overlay.set_child(self.split)
         self.set_content(self.toast_overlay)
 
         self._install_actions()
@@ -189,7 +246,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     # -- actions --------------------------------------------------------------------------------
     def _install_actions(self):
-        for name, cb, accels in (("open", self.open_dialog, ["<Control>o"]),
+        for name, cb, accels in (("sidebar", lambda: self.split.set_show_sidebar(not self.split.get_show_sidebar()),
+                                  ["F9"]),
+                                 ("open", self.open_dialog, ["<Control>o"]),
                                  ("add-magnet", self.magnet_dialog, []),
                                  ("paste", self.paste, ["<Control>v"]),
                                  ("close", self.close, ["<Control>w"])):
@@ -305,13 +364,55 @@ class MainWindow(Adw.ApplicationWindow):
                 row.update(t)
         for tid in [k for k in self.rows if k not in seen]:
             self.list.remove(self.rows.pop(tid))
-        self.stack.set_visible_child_name("list" if transfers else "empty")
+        self.transfers = transfers
+        for fid, _l, _i in FILTERS:
+            n = sum(1 for t in transfers if matches(fid, t))
+            self.side_counts[fid].set_label(str(n) if n else "")
+        self.list.invalidate_filter()            # un téléchargement fini passe d'« En cours » à « Terminés »
+        self._sync_page()
         down = sum(t.down_rate for t in transfers)
         up = sum(t.up_rate for t in transfers)
         active = any(t.active for t in transfers)
         self.title_widget.set_subtitle(tr("↓ {0} · ↑ {1}").format(fmt.speed(down), fmt.speed(up)) if active else "")
         for tid, d in list(self.files_dialogs.items()):
             d.refresh()
+
+    def _sync_page(self):
+        transfers = getattr(self, "transfers", [])
+        if not transfers:
+            self.stack.set_visible_child_name("empty")
+        elif not any(matches(self.filter, t) for t in transfers):
+            title, text = {"active": (tr("Rien en cours"), tr("Tous les téléchargements sont terminés.")),
+                           "done": (tr("Aucun téléchargement terminé"), tr("Ils apparaîtront ici une fois "
+                                                                            "complets."))}[self.filter]
+            self.none.set_title(title)
+            self.none.set_description(text)
+            self.stack.set_visible_child_name("none")
+        else:
+            self.stack.set_visible_child_name("list")
+
+    def set_filter(self, fid: str):
+        if fid not in self.side_rows:
+            return
+        if self.side_list.get_selected_row() is not self.side_rows[fid]:
+            self.side_list.select_row(self.side_rows[fid])      # (rappelle _on_filter_row)
+            return
+        self.filter = fid
+        settings["filter"] = fid
+        self.title_widget.set_title(dict((f[0], f[1]) for f in FILTERS)[fid])
+        self.list.invalidate_filter()
+        self._sync_page()
+
+    def _on_filter_row(self, _box, row):
+        if row is None:
+            return
+        self.set_filter(row.fid)
+        if self.split.get_collapsed():
+            self.split.set_show_sidebar(False)
+
+    def _on_sidebar_shown(self, *_):
+        if not self.split.get_collapsed():
+            settings["sidebar_visible"] = self.split.get_show_sidebar()
 
     def toggle_transfer(self, tid: str):
         t = self.app.engine.transfer(tid)

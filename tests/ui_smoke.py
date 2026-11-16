@@ -306,6 +306,30 @@ def lien_magnet(win):
 
 
 @step
+def barre_laterale(win):
+    check(win.split.get_show_sidebar(), "barre latérale affichée")
+    app.refresh()                       # (le film s'est téléchargé entre deux relectures)
+    counts = {fid: lab.get_label() for fid, lab in win.side_counts.items()}
+    check(counts == {"all": "2", "active": "", "done": "2"}, f"compteurs Tous / En cours / Terminés : {counts}")
+    win.set_filter("active")
+    yield pump(0.3)
+    check(win.stack.get_visible_child_name() == "none" and win.none.get_title() == tr("Rien en cours"),
+          "« En cours » vide : page à part")
+    check(win.title_widget.get_title() == tr("En cours"), "titre : la vue choisie")
+    win.set_filter("done")
+    yield pump(0.3)
+    shown_rows = [r for r in win.rows.values() if r.get_child_visible()]
+    check(win.stack.get_visible_child_name() == "list" and len(shown_rows) == 2, "« Terminés » : les deux")
+    check(settings["filter"] == "done", "vue retenue")
+    win.activate_action("win.sidebar", None)
+    yield pump(0.3)
+    check(not win.split.get_show_sidebar() and not settings["sidebar_visible"], "F9 : barre masquée, retenu")
+    win.activate_action("win.sidebar", None)
+    win.set_filter("all")
+    yield pump(0.2)
+
+
+@step
 def textes_d_etat(win):
     from telemaque.backend.engine import Transfer
     t = Transfer("x", "x", "downloading", 0.5, 2_000_000_000, 1_000_000_000, down_rate=2_100_000, eta=725, peers=4)
