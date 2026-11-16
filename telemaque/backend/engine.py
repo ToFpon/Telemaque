@@ -61,6 +61,7 @@ class NetInfo:
     # adresses publiques vues par les trackers / le DHT, une par famille ("" : pas encore connue)
     ipv4: str = ""
     ipv6: str = ""
+    checking: bool = False        # réseau changé (VPN coupé / remis) : adresses en cours de vérification
     port: int = 0
     reachable: bool = False       # des connexions entrantes arrivent : le port est ouvert
     dht_enabled: bool = False
@@ -176,6 +177,7 @@ class Engine:
         # sinon la dernière annoncée (souvent l'IPv6) remplaçait l'autre (vu chez Tof)
         self.ipv4 = ""
         self.ipv6 = ""
+        self.ip_checking = False
         self.listen_error = ""
         self.stats: dict = {}
         self._load()
@@ -419,10 +421,31 @@ class Engine:
             self.ipv6 = ip
         elif ip:
             self.ipv4 = ip
+        if ip:
+            self.ip_checking = False
+
+    def network_changed(self):
+        """Le réseau a changé (VPN coupé ou remis, Wi-Fi…) : les adresses publiques connues ne valent plus
+        rien. libtorrent ne l'apprend que par les réponses des trackers et du DHT — jusqu'à 30 min plus
+        tard (vu chez Tof : l'adresse du VPN restait affichée). Adresses oubliées, prises réseau rouvertes
+        sur les interfaces du moment, trackers et DHT interrogés tout de suite."""
+        self.ipv4 = self.ipv6 = ""
+        self.ip_checking = True
+        if self.local_only:
+            return
+        try:
+            # (en Python, le drapeau est obligatoire : sans lui, ArgumentError de Boost) ; reopen_map_ports :
+            # rouvre aussi le port sur la box (UPnP / NAT-PMP) pour la nouvelle interface
+            self.session.reopen_network_sockets(lt.session.reopen_map_ports)
+        except (RuntimeError, AttributeError, TypeError):
+            pass
+        for h in self.handles.values():
+            if not h.status().flags & lt.torrent_flags.paused:
+                self._find_sources(h)
 
     def network(self) -> NetInfo:
         st = self.stats
-        return NetInfo(ipv4=self.ipv4, ipv6=self.ipv6, port=self.listen_port(),
+        return NetInfo(ipv4=self.ipv4, ipv6=self.ipv6, checking=self.ip_checking, port=self.listen_port(),
                        reachable=bool(st.get("net.has_incoming_connections", 0)),
                        dht_enabled=self.dht_enabled, dht_nodes=int(st.get("dht.dht_nodes", 0)),
                        listen_error=self.listen_error)

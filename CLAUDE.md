@@ -77,7 +77,11 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   seul en pause / terminé, rien que les sources pendant la recherche des infos). En anglais : seeds / peers.
 - Barre d'état en bas (demande de Tof) : IP publiques IPv4 ET IPv6 (`external_ip_alert`, annoncée famille par
   famille → `note_external_ip` garde les deux ; avant, l'IPv6 remplaçait l'IPv4 ; celles du VPN s'il y en a un ;
-  pas d'IP locale, choix de Tof), port + « joignable » (compteur `net.has_incoming_connections`), DHT
+  pas d'IP locale, choix de Tof). Réseau changé (VPN coupé / remis — retour de Tof : l'adresse du VPN restait,
+  libtorrent ne l'apprend qu'aux annonces suivantes, jusqu'à 30 min) : Gio.NetworkMonitor « network-changed »
+  (rafale → une réaction 2 s après) → `Engine.network_changed` : adresses oubliées (« vérification… »),
+  `reopen_network_sockets(reopen_map_ports)` (drapeau OBLIGATOIRE en Python, sinon ArgumentError de Boost),
+  trackers + DHT relancés. Port + « joignable » (compteur `net.has_incoming_connections`), DHT
   désactivé / connexion… / actif avec N nœuds (compteur `dht.dht_nodes`) ; compteurs par
   `post_session_stats` à chaque relecture (`session.status()` est dépréciée). `Engine.network()` → `NetInfo`.
 - `ui/window.py` : liste (Gtk.ListBox boxed-list dans un Adw.Clamp, `TransferRow` : nom, barre, état,

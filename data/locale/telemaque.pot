@@ -11,27 +11,27 @@ msgstr ""
 msgid "Afficher la version"
 msgstr ""
 
-#: telemaque/app.py:200
+#: telemaque/app.py:216
 msgid "Téléchargement terminé"
 msgstr ""
 
-#: telemaque/app.py:205 telemaque/ui/window.py:132
+#: telemaque/app.py:221 telemaque/ui/window.py:132
 msgid "Ouvrir"
 msgstr ""
 
-#: telemaque/app.py:206 telemaque/ui/window.py:133
+#: telemaque/app.py:222 telemaque/ui/window.py:133
 msgid "Afficher dans le dossier"
 msgstr ""
 
-#: telemaque/app.py:261
+#: telemaque/app.py:277
 msgid "Moteur"
 msgstr ""
 
-#: telemaque/app.py:129
+#: telemaque/app.py:145
 msgid "Téléchargement en cours"
 msgstr ""
 
-#: telemaque/app.py:257
+#: telemaque/app.py:273
 msgid "Un client BitTorrent tout simple pour GNOME."
 msgstr ""
 
@@ -367,10 +367,6 @@ msgstr ""
 msgid "Terminés"
 msgstr ""
 
-#: telemaque/ui/window.py:84
-msgid "pas encore connue"
-msgstr ""
-
 #: telemaque/ui/window.py:95
 msgid "DHT : désactivé"
 msgstr ""
@@ -387,8 +383,12 @@ msgstr ""
 msgid "{0} — ↓ {1}"
 msgstr ""
 
-#: telemaque/ui/window.py:82
-msgid "IP publique : pas encore connue"
+#: telemaque/ui/window.py:84
+msgid "vérification…"
+msgstr ""
+
+#: telemaque/ui/window.py:84
+msgid "pas encore connue"
 msgstr ""
 
 #: telemaque/ui/window.py:86
@@ -459,6 +459,14 @@ msgstr ""
 
 #: telemaque/ui/window.py:80
 msgid "Port {0} indisponible : {1}"
+msgstr ""
+
+#: telemaque/ui/window.py:82
+msgid "IP publique : vérification…"
+msgstr ""
+
+#: telemaque/ui/window.py:82
+msgid "IP publique : pas encore connue"
 msgstr ""
 
 #: telemaque/ui/window.py:118

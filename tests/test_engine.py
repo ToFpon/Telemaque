@@ -273,6 +273,26 @@ class NetworkTest(unittest.TestCase):
             self.assertEqual((n.ipv4, n.ipv6), ("82.65.1.2", "2a01:e0a:1::5"))
             e.note_external_ip("82.65.9.9")              # changée (box redémarrée) : remplacée
             self.assertEqual(e.network().ipv4, "82.65.9.9")
+            e.network_changed()                         # VPN coupé : oubliées, en vérification
+            n = e.network()
+            self.assertEqual((n.ipv4, n.ipv6, n.checking), ("", "", True))
+            e.note_external_ip("90.1.2.3")              # la nouvelle arrive
+            n = e.network()
+            self.assertEqual((n.ipv4, n.checking), ("90.1.2.3", False))
+        finally:
+            e.session.pause()
+
+
+class RealNetworkTest(unittest.TestCase):
+    def test_network_changed_on_real_session(self):
+        """Sur une vraie session (pas le mode test) : la réouverture des prises réseau passe (en Python, le
+        drapeau est obligatoire : sans lui, ArgumentError de Boost, vu au premier essai)."""
+        e = Engine(tempfile.mkdtemp(dir=TMP), listen_port=port(), dht=False)
+        try:
+            e.note_external_ip("10.8.0.2")
+            e.network_changed()
+            e.poll()
+            self.assertTrue(e.network().checking)
         finally:
             e.session.pause()
 

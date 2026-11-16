@@ -345,6 +345,9 @@ def barre_d_etat(win):
     n.ipv4 = ""
     check(ip_text(n).startswith(tr("IPv4 : {0}").format(tr("pas encore connue"))), "IPv4 pas encore connue : dit")
     n.ipv4 = "82.65.1.2"
+    win.app.engine.network_changed()                    # VPN coupé : adresses à revérifier
+    win._sync_network()
+    check(win.ip_label.get_label().startswith(tr("IP publique : vérification…")), "réseau changé : « vérification… »")
     from telemaque.i18n import ntr
     check(dht_text(n) == ntr("DHT : actif, {0} nœud", "DHT : actif, {0} nœuds", 342).format(342),
           "DHT actif, nombre de nœuds")

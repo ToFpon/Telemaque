@@ -81,8 +81,24 @@ class TelemaqueApp(Adw.Application):
                                  seed_ratio=settings["seed_ratio"], down_limit=settings["down_limit"],
                                  up_limit=settings["up_limit"])
         self.engine.on_finished = self._on_finished
+        # VPN coupé ou remis, autre réseau : les adresses publiques sont à revérifier (Tof). Le signal arrive
+        # en rafale pendant que le réseau se réorganise : une seule réaction, 2 s après le dernier
+        self._net_timer = 0
+        Gio.NetworkMonitor.get_default().connect("network-changed", self._on_network_changed)
         self._poll()
         self._poll_id = GLib.timeout_add(POLL_MS, self._poll)
+
+    def _on_network_changed(self, *_):
+        if self._net_timer:
+            GLib.source_remove(self._net_timer)
+        self._net_timer = GLib.timeout_add(2000, self._network_settled)
+
+    def _network_settled(self):
+        self._net_timer = 0
+        if self.engine is not None and not self._quitting:
+            self.engine.network_changed()
+            self.refresh()
+        return False
 
     def _on_setting(self, key, value):
         e = self.engine

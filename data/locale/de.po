@@ -12,27 +12,27 @@ msgstr ""
 msgid "Afficher la version"
 msgstr "Version anzeigen"
 
-#: telemaque/app.py:200
+#: telemaque/app.py:216
 msgid "Téléchargement terminé"
 msgstr "Download abgeschlossen"
 
-#: telemaque/app.py:205 telemaque/ui/window.py:132
+#: telemaque/app.py:221 telemaque/ui/window.py:132
 msgid "Ouvrir"
 msgstr "Öffnen"
 
-#: telemaque/app.py:206 telemaque/ui/window.py:133
+#: telemaque/app.py:222 telemaque/ui/window.py:133
 msgid "Afficher dans le dossier"
 msgstr "Im Ordner anzeigen"
 
-#: telemaque/app.py:261
+#: telemaque/app.py:277
 msgid "Moteur"
 msgstr "Engine"
 
-#: telemaque/app.py:129
+#: telemaque/app.py:145
 msgid "Téléchargement en cours"
 msgstr "Download läuft"
 
-#: telemaque/app.py:257
+#: telemaque/app.py:273
 msgid "Un client BitTorrent tout simple pour GNOME."
 msgstr "Ein einfacher BitTorrent-Client für GNOME."
 
@@ -389,10 +389,6 @@ msgstr "Laufend"
 msgid "Terminés"
 msgstr "Fertig"
 
-#: telemaque/ui/window.py:84
-msgid "pas encore connue"
-msgstr "noch unbekannt"
-
 #: telemaque/ui/window.py:95
 msgid "DHT : désactivé"
 msgstr "DHT: aus"
@@ -413,9 +409,13 @@ msgstr ""
 msgid "{0} — ↓ {1}"
 msgstr "{0} — ↓ {1}"
 
-#: telemaque/ui/window.py:82
-msgid "IP publique : pas encore connue"
-msgstr "Öffentliche IP: noch unbekannt"
+#: telemaque/ui/window.py:84
+msgid "vérification…"
+msgstr "wird geprüft…"
+
+#: telemaque/ui/window.py:84
+msgid "pas encore connue"
+msgstr "noch unbekannt"
 
 #: telemaque/ui/window.py:86
 msgid "port {0}"
@@ -491,6 +491,14 @@ msgstr "{0} — warte auf Quellen"
 #: telemaque/ui/window.py:80
 msgid "Port {0} indisponible : {1}"
 msgstr "Port {0} nicht verfügbar: {1}"
+
+#: telemaque/ui/window.py:82
+msgid "IP publique : vérification…"
+msgstr "Öffentliche IP: wird geprüft…"
+
+#: telemaque/ui/window.py:82
+msgid "IP publique : pas encore connue"
+msgstr "Öffentliche IP: noch unbekannt"
 
 #: telemaque/ui/window.py:118
 msgid ""
