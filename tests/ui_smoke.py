@@ -345,6 +345,11 @@ def barre_d_etat(win):
     n.ipv4 = ""
     check(ip_text(n).startswith(tr("IPv4 : {0}").format(tr("pas encore connue"))), "IPv4 pas encore connue : dit")
     n.ipv4 = "82.65.1.2"
+    n.looked_up = True
+    n.ipv6 = ""
+    check(ip_text(n).startswith(" · ".join([tr("IPv4 : {0}").format("82.65.1.2"), tr("IPv6 : {0}").format(tr("aucune"))])),
+          "vérifiée, pas d'IPv6 : « aucune »")
+    n.looked_up = False
     win.app.engine.network_changed()                    # VPN coupé : adresses à revérifier
     win._sync_network()
     check(win.ip_label.get_label().startswith(tr("IP publique : vérification…")), "réseau changé : « vérification… »")

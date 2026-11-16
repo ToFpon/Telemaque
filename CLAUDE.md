@@ -16,7 +16,7 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   @error_color).
 - Dialogues : de vraies fenêtres (`common.AlertDialog`, `common.DialogWindow`, `Adw.PreferencesWindow`,
   `Adw.AboutWindow`).
-- Chaque fonctionnalité facultative est dans `telemaque/features.py` (tray, delete_torrent, notify, inhibit) et se consulte au
+- Chaque fonctionnalité facultative est dans `telemaque/features.py` (tray, public_ip, delete_torrent, notify, inhibit) et se consulte au
   moment de l'usage.
 - Tout texte visible passe par `tr()` / `ntr()`. Après modification : `python3.12 tools/update-pot.py`,
   compléter `data/locale/en.po` et `de.po`, puis `msgfmt -c --statistics` et `msgcmp`.
@@ -81,7 +81,13 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   libtorrent ne l'apprend qu'aux annonces suivantes, jusqu'à 30 min) : Gio.NetworkMonitor « network-changed »
   (rafale → une réaction 2 s après) → `Engine.network_changed` : adresses oubliées (« vérification… »),
   `reopen_network_sockets(reopen_map_ports)` (drapeau OBLIGATOIRE en Python, sinon ArgumentError de Boost),
-  trackers + DHT relancés. Port + « joignable » (compteur `net.has_incoming_connections`), DHT
+  trackers + DHT relancés. Ça NE SUFFIT PAS (retour de Tof : VPN activé APRÈS le lancement → bloqué sur
+  « vérification… » : la nouvelle interface n'a pas de « votes », les anciennes votent toujours pour l'ancienne
+  adresse, libtorrent ne signale rien, et son API Python ne donne pas l'adresse autrement). D'où la fonctionnalité
+  `public_ip` (active par défaut, choix de Tof) : `backend/publicip.py` demande l'adresse à ipify.org
+  (api.ipify.org / api6.ipify.org, HTTPS, dans un fil, réponse vérifiée : adresse globale de la bonne famille)
+  au démarrage et 2 s après chaque changement de réseau ; la plus récente gagne (`_ip_seq`) ;
+  `Engine.set_public_ips` fait foi (`looked_up` : famille vide = « aucune », pas d'IPv6 par ex.). Port + « joignable » (compteur `net.has_incoming_connections`), DHT
   désactivé / connexion… / actif avec N nœuds (compteur `dht.dht_nodes`) ; compteurs par
   `post_session_stats` à chaque relecture (`session.status()` est dépréciée). `Engine.network()` → `NetInfo`.
 - `ui/window.py` : liste (Gtk.ListBox boxed-list dans un Adw.Clamp, `TransferRow` : nom, barre, état,

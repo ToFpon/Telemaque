@@ -84,8 +84,10 @@ class TelemaqueApp(Adw.Application):
         # VPN coupé ou remis, autre réseau : les adresses publiques sont à revérifier (Tof). Le signal arrive
         # en rafale pendant que le réseau se réorganise : une seule réaction, 2 s après le dernier
         self._net_timer = 0
+        self._ip_seq = 0
         Gio.NetworkMonitor.get_default().connect("network-changed", self._on_network_changed)
         self._poll()
+        self.lookup_public_ip()
         self._poll_id = GLib.timeout_add(POLL_MS, self._poll)
 
     def _on_network_changed(self, *_):
@@ -98,7 +100,26 @@ class TelemaqueApp(Adw.Application):
         if self.engine is not None and not self._quitting:
             self.engine.network_changed()
             self.refresh()
+            self.lookup_public_ip()
         return False
+
+    def lookup_public_ip(self):
+        """Adresses publiques demandées à ipify.org (fonctionnalité « public_ip ») ; une recherche plus
+        récente (réseau encore changé entre-temps) l'emporte sur une plus ancienne."""
+        if not features.enabled("public_ip") or getattr(self.engine, "local_only", False):
+            return
+        from .backend import publicip
+        self._ip_seq += 1
+        seq = self._ip_seq
+
+        def done(v4, v6):
+            def apply():
+                if seq == self._ip_seq and self.engine is not None and not self._quitting:
+                    self.engine.set_public_ips(v4, v6)
+                    self.refresh()
+                return False
+            GLib.idle_add(apply)
+        publicip.lookup(done)
 
     def _on_setting(self, key, value):
         e = self.engine

@@ -26,6 +26,10 @@ FEATURES = [
             tr("En arrière-plan, une icône garde Télémaque à portée : état, Afficher, Tout mettre en pause, "
                "Quitter (extension AppIndicator, présente sur Zorin et Ubuntu)"),
             "view-app-grid-symbolic"),
+    Feature("public_ip", tr("Vérifier l'adresse publique"),
+            tr("Au démarrage et quand le réseau change (VPN activé ou coupé), demander l'adresse IPv4 et IPv6 "
+               "à ipify.org pour la barre d'état ; sinon, seulement ce que les trackers et le DHT renvoient"),
+            "network-workgroup-symbolic"),
     Feature("delete_torrent", tr("Supprimer le fichier .torrent après l'ajout"),
             tr("Moins de fichiers qui traînent : Télémaque garde tout ce qu'il faut de son côté"),
             "user-trash-symbolic", default=False),

@@ -62,6 +62,7 @@ class NetInfo:
     ipv4: str = ""
     ipv6: str = ""
     checking: bool = False        # réseau changé (VPN coupé / remis) : adresses en cours de vérification
+    looked_up: bool = False       # adresses vérifiées auprès d'ipify.org : une famille vide = il n'y en a pas
     port: int = 0
     reachable: bool = False       # des connexions entrantes arrivent : le port est ouvert
     dht_enabled: bool = False
@@ -178,6 +179,7 @@ class Engine:
         self.ipv4 = ""
         self.ipv6 = ""
         self.ip_checking = False
+        self.ip_looked_up = False
         self.listen_error = ""
         self.stats: dict = {}
         self._load()
@@ -424,6 +426,12 @@ class Engine:
         if ip:
             self.ip_checking = False
 
+    def set_public_ips(self, ipv4: str, ipv6: str):
+        """Réponse d'ipify.org (backend/publicip.py) : elle fait foi pour les deux familles."""
+        self.ipv4, self.ipv6 = ipv4, ipv6
+        self.ip_checking = False
+        self.ip_looked_up = True
+
     def network_changed(self):
         """Le réseau a changé (VPN coupé ou remis, Wi-Fi…) : les adresses publiques connues ne valent plus
         rien. libtorrent ne l'apprend que par les réponses des trackers et du DHT — jusqu'à 30 min plus
@@ -431,6 +439,7 @@ class Engine:
         sur les interfaces du moment, trackers et DHT interrogés tout de suite."""
         self.ipv4 = self.ipv6 = ""
         self.ip_checking = True
+        self.ip_looked_up = False
         if self.local_only:
             return
         try:
@@ -445,7 +454,8 @@ class Engine:
 
     def network(self) -> NetInfo:
         st = self.stats
-        return NetInfo(ipv4=self.ipv4, ipv6=self.ipv6, checking=self.ip_checking, port=self.listen_port(),
+        return NetInfo(ipv4=self.ipv4, ipv6=self.ipv6, checking=self.ip_checking, looked_up=self.ip_looked_up,
+                       port=self.listen_port(),
                        reachable=bool(st.get("net.has_incoming_connections", 0)),
                        dht_enabled=self.dht_enabled, dht_nodes=int(st.get("dht.dht_nodes", 0)),
                        listen_error=self.listen_error)

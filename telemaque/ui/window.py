@@ -79,9 +79,11 @@ def ip_text(n) -> str:
     if n.listen_error:
         return tr("Port {0} indisponible : {1}").format(n.port, n.listen_error)
     if not n.ipv4 and not n.ipv6:
-        parts = [tr("IP publique : vérification…") if n.checking else tr("IP publique : pas encore connue")]
+        parts = [tr("IP publique : vérification…") if n.checking else tr("IP publique : inconnue") if n.looked_up
+                 else tr("IP publique : pas encore connue")]
     else:
-        unknown = tr("vérification…") if n.checking else tr("pas encore connue")
+        unknown = (tr("vérification…") if n.checking else tr("aucune") if n.looked_up   # pas d'IPv6, par ex.
+                   else tr("pas encore connue"))
         parts = [tr("IPv4 : {0}").format(n.ipv4 or unknown), tr("IPv6 : {0}").format(n.ipv6 or unknown)]
     port = tr("port {0}").format(n.port)
     if n.reachable:

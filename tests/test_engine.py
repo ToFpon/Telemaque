@@ -283,6 +283,25 @@ class NetworkTest(unittest.TestCase):
             e.session.pause()
 
 
+class PublicIpTest(unittest.TestCase):
+    def test_parse(self):
+        from telemaque.backend import publicip
+        self.assertEqual(publicip.parse("82.65.1.2", 4), "82.65.1.2")
+        self.assertEqual(publicip.parse("2a01:e0a:1::5", 6), "2a01:e0a:1::5")
+        for text, v in (("192.168.1.2", 4), ("<html>", 4), ("2a01:e0a:1::5", 4), ("82.65.1.2", 6), ("", 6)):
+            self.assertEqual(publicip.parse(text, v), "", text)
+
+    def test_engine_takes_lookup(self):
+        e = Engine(tempfile.mkdtemp(dir=TMP), listen_port=port(), local_only=True)
+        try:
+            e.network_changed()
+            e.set_public_ips("82.65.1.2", "")
+            n = e.network()
+            self.assertEqual((n.ipv4, n.ipv6, n.checking, n.looked_up), ("82.65.1.2", "", False, True))
+        finally:
+            e.session.pause()
+
+
 class RealNetworkTest(unittest.TestCase):
     def test_network_changed_on_real_session(self):
         """Sur une vraie session (pas le mode test) : la réouverture des prises réseau passe (en Python, le
