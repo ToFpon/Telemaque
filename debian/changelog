@@ -1,3 +1,11 @@
+telemaque (1.0.3~noble1) noble; urgency=medium
+
+  * Nouvel interrupteur dans Préférences → Général : « Application par
+    défaut pour les torrents » (liens magnet et fichiers .torrent) ; coupé,
+    l'application d'avant revient.
+
+ -- Tof <nourpon@gmail.com>  Mon, 16 Nov 2026 16:18:39 +0000
+
 telemaque (1.0.2~noble1) noble; urgency=medium
 
   * L'adresse publique suit les changements de réseau : un VPN activé ou
