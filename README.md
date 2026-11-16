@@ -28,6 +28,9 @@ Debian package, like its siblings [Odysseus](https://github.com/ToFpon/Odysseus)
 - **Sidebar**: All, In Progress, Finished, with their count.
 - **The list**: progress, speed, time left; pause, resume, remove (with or without the files);
   open the result or show it in its folder.
+- **Several at once**: round check boxes on the right of each line, then pause, resume, move or remove
+  the selection (Ctrl+A, Esc, Delete).
+- **Move the files** to another folder, during or after the download (never over an existing file).
 - **Sharing**: stops at the ratio you choose (1.0 by default), never stops, or stops right away.
 - Option: **delete the .torrent file** once added, to leave fewer files lying around.
 - **Speed limits**, port, DHT; a desktop notification when a download is finished; the computer does not
@@ -65,6 +68,10 @@ Flatpak : un simple paquet Debian, comme ses frères [Odysseus](https://github.c
 - **Barre latérale** : Tous, En cours, Terminés, avec leur nombre.
 - **La liste** : progression, vitesse, temps restant ; pause, reprise, suppression (avec ou sans les
   fichiers) ; ouvrir le résultat ou l'afficher dans son dossier.
+- **Plusieurs à la fois** : cases rondes à droite de chaque ligne, puis pause, reprise, déplacement ou
+  suppression de la sélection (Ctrl+A, Échap, Suppr).
+- **Déplacer les fichiers** vers un autre dossier, pendant ou après le téléchargement (jamais par-dessus un
+  fichier existant).
 - **Le partage** : s'arrête au ratio choisi (1,0 par défaut), ne s'arrête jamais, ou s'arrête tout de suite.
 - En option : **supprimer le fichier .torrent** une fois ajouté, pour laisser moins de fichiers qui traînent.
 - **Limites de vitesse**, port, DHT ; une notification du bureau à la fin d'un téléchargement ;

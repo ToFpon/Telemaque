@@ -81,6 +81,7 @@ class TelemaqueApp(Adw.Application):
                                  seed_ratio=settings["seed_ratio"], down_limit=settings["down_limit"],
                                  up_limit=settings["up_limit"])
         self.engine.on_finished = self._on_finished
+        self.engine.on_moved = lambda tid, ok, msg: self.window is not None and self.window.moved(tid, ok, msg)
         # VPN coupé ou remis, autre réseau : les adresses publiques sont à revérifier (Tof). Le signal arrive
         # en rafale pendant que le réseau se réorganise : une seule réaction, 2 s après le dernier
         self._net_timer = 0

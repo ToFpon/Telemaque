@@ -43,7 +43,7 @@ sys.excepthook = hook
 import samples  # noqa: E402
 from telemaque.app import TelemaqueApp  # noqa: E402
 from telemaque.backend.engine import Engine  # noqa: E402
-from telemaque.i18n import tr  # noqa: E402
+from telemaque.i18n import ntr, tr  # noqa: E402
 from telemaque.settings import settings  # noqa: E402
 from telemaque.ui.window import status_text  # noqa: E402
 
@@ -416,6 +416,48 @@ def supprimer_le_fichier_torrent(win):
         check(by_name("petit.bin") is not None, "le téléchargement, lui, est bien là")
     finally:
         features.set_enabled("delete_torrent", False)
+
+
+@step
+def selection_multiple(win):
+    """Cases rondes : sélection de plusieurs téléchargements, pause / reprise / déplacement / suppression."""
+    app.refresh()
+    tids = [t.tid for t in app.transfers]
+    check(len(tids) == 2, f"deux téléchargements pour l'essai ({[t.name for t in app.transfers]})")
+    check(not win.sel_revealer.get_reveal_child(), "rien de coché : pas de barre de sélection")
+    for tid in tids:
+        win.rows[tid].check.set_active(True)              # comme un clic sur la case
+    yield pump(0.3)
+    check(win.sel_revealer.get_reveal_child() and win.selected == set(tids), "deux cochés : barre de sélection")
+    check(win.sel_label.get_label() == ntr("{0} sélectionné", "{0} sélectionnés", 2).format(2), "« 2 sélectionnés »")
+    win.activate_action("win.pause-selected", None)
+    yield Wait(4, until=lambda: all(app.engine.transfer(t).state in ("paused", "done") for t in tids))
+    check(all(app.engine.transfer(t).state in ("paused", "done") for t in tids), "pause des deux")
+    win.activate_action("win.resume-selected", None)
+    yield Wait(4, until=lambda: all(app.engine.transfer(t).state not in ("paused", "done") for t in tids))
+    check(all(app.engine.transfer(t).state not in ("paused", "done") for t in tids), "reprise des deux")
+    dest = os.path.join(TMP, "home", "Rangés")
+    win.move_to(tids, dest)
+    yield Wait(10, until=lambda: all(app.engine.content_path(t).startswith(dest + os.sep) and not app.engine.moving(t)
+                                     for t in tids))
+    check(all(app.engine.content_path(t).startswith(dest + os.sep) for t in tids), "déplacés ensemble")
+    check(os.path.getsize(os.path.join(dest, "Série", "Épisode 1.mkv")) == 3_000_000, "fichiers bien arrivés")
+    win.activate_action("win.select-none", None)
+    yield pump(0.2)
+    check(not win.selected and not win.sel_revealer.get_reveal_child(), "Échap : sélection vidée")
+    win.activate_action("win.select-all", None)
+    yield pump(0.2)
+    check(win.selected == set(tids), "Ctrl+A : tout sélectionné")
+    win.set_selected(tids[1], False)
+    win.activate_action("win.remove-selected", None)
+    yield pump(0.4)
+    alerts = dialogs(win, Adw.MessageDialog)
+    check(bool(alerts), "Suppr : question « Supprimer ? »")
+    if alerts:
+        respond(alerts[0], "remove")
+    yield Wait(3, until=lambda: tids[0] not in win.rows)
+    check(tids[0] not in win.rows and tids[1] in win.rows and not win.selected, "seul le coché est retiré")
+    check(os.path.exists(os.path.join(dest, "Série", "Épisode 1.mkv")), "« Retirer de la liste » : fichiers gardés")
 
 
 @step

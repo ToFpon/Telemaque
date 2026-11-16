@@ -18,7 +18,8 @@ from .. import APP_ID, APP_NAME, features, format as fmt  # noqa: E402
 from ..backend import engine as eng  # noqa: E402
 from ..i18n import ntr, tr  # noqa: E402
 from ..settings import settings  # noqa: E402
-from .common import alert, choose_files, open_with_default, show_in_folder, shown, toast  # noqa: E402
+from .common import (alert, choose_files, choose_folder, open_with_default, show_in_folder, shown,  # noqa: E402
+                     toast)
 
 STATE_ICONS = {"paused": "media-playback-start-symbolic", "done": "media-playback-start-symbolic",
                "error": "view-refresh-symbolic"}
@@ -31,6 +32,8 @@ def status_text(t) -> str:
         return tr("Erreur : {0}").format(t.error)
     if t.state == "metadata":
         return tr("Recherche des informations du torrent…")
+    if t.state == "moving":
+        return tr("Déplacement des fichiers…")
     if t.state == "checking":
         return tr("Vérification des fichiers… {0}").format(fmt.percent(t.progress))
     if t.state == "paused":
@@ -136,6 +139,7 @@ class TransferRow(Gtk.ListBoxRow):
         menu.append_section(None, first)
         second = Gio.Menu()
         second.append(tr("Fichiers…"), "row.files")
+        second.append(tr("Déplacer…"), "row.move")
         menu.append_section(None, second)
         third = Gio.Menu()
         third.append(tr("Supprimer…"), "row.remove")
@@ -144,11 +148,17 @@ class TransferRow(Gtk.ListBoxRow):
                                           menu_model=menu, css_classes=["flat", "circular"],
                                           tooltip_text=tr("Plus d'actions"))
         box.append(self.menu_button)
+        # case ronde à droite (demande de Tof) : sélection de un ou plusieurs téléchargements
+        self.check = Gtk.CheckButton(valign=Gtk.Align.CENTER, css_classes=["selection-mode"],
+                                     tooltip_text=tr("Sélectionner"))
+        self.check.connect("toggled", lambda c: win.set_selected(self.tid, c.get_active()))
+        box.append(self.check)
         group = Gio.SimpleActionGroup()
         self.actions = {}
         for name, cb in (("open", lambda: win.open_transfer(self.tid)),
                          ("show", lambda: win.show_transfer(self.tid)),
                          ("files", lambda: win.show_files(self.tid)),
+                         ("move", lambda: win.ask_move([self.tid])),
                          ("remove", lambda: win.ask_remove(self.tid))):
             a = Gio.SimpleAction.new(name, None)
             a.connect("activate", lambda _a, _p, cb=cb: cb())
@@ -174,6 +184,8 @@ class TransferRow(Gtk.ListBoxRow):
         else:
             self.toggle.set_icon_name("media-playback-pause-symbolic")
             self.toggle.set_tooltip_text(tr("Mettre en pause"))
+        self.toggle.set_sensitive(t.state != "moving")
+        self.actions["move"].set_enabled(t.state != "moving")
         exists = bool(t.has_metadata and t.done > 0)
         self.actions["open"].set_enabled(exists and t.complete)
         self.actions["show"].set_enabled(exists)
@@ -190,6 +202,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.set_size_request(360, 300)
         self.rows: dict[str, TransferRow] = {}
         self.files_dialogs: dict = {}
+        self.selected: set[str] = set()
 
         self.filter = settings["filter"] if settings["filter"] in [f[0] for f in FILTERS] else "all"
         self.toast_overlay = Adw.ToastOverlay()
@@ -254,6 +267,7 @@ class MainWindow(Adw.ApplicationWindow):
         status.append(self.ip_label)
         status.append(self.dht_icon)
         status.append(self.dht_label)
+        tv.add_bottom_bar(self._build_selection_bar())
         tv.add_bottom_bar(status)
         self.list.set_filter_func(lambda row: matches(self.filter, row.transfer))
 
@@ -297,6 +311,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.set_content(self.toast_overlay)
 
         self._install_actions()
+        self._sync_selection()
         self._install_drop()
         self.connect("close-request", self._on_close_request)
         # cachée (arrière-plan) : toujours à jour ; détruite (Quitter) : plus d'écouteur
@@ -309,6 +324,12 @@ class MainWindow(Adw.ApplicationWindow):
         for name, cb, accels in (("sidebar", lambda: self.split.set_show_sidebar(not self.split.get_show_sidebar()),
                                   ["F9"]),
                                  ("open", self.open_dialog, ["<Control>o"]),
+                                 ("select-all", self.select_all, ["<Control>a"]),
+                                 ("select-none", self.select_none, ["Escape"]),
+                                 ("pause-selected", self.pause_selected, []),
+                                 ("resume-selected", self.resume_selected, []),
+                                 ("move-selected", lambda: self.ask_move(list(self.selected)), []),
+                                 ("remove-selected", lambda: self.ask_remove(list(self.selected)), ["Delete"]),
                                  ("add-magnet", self.magnet_dialog, []),
                                  ("paste", self.paste, ["<Control>v"]),
                                  ("close", self.close, ["<Control>w"])):
@@ -425,6 +446,8 @@ class MainWindow(Adw.ApplicationWindow):
                 row.update(t)
         for tid in [k for k in self.rows if k not in seen]:
             self.list.remove(self.rows.pop(tid))
+        if self.selected - set(self.rows):
+            self._sync_selection()
         self.transfers = transfers
         for fid, _l, _i in FILTERS:
             n = sum(1 for t in transfers if matches(fid, t))
@@ -487,6 +510,106 @@ class MainWindow(Adw.ApplicationWindow):
         if not self.split.get_collapsed():
             settings["sidebar_visible"] = self.split.get_show_sidebar()
 
+    # -- sélection -------------------------------------------------------------------------------
+    def _build_selection_bar(self) -> Gtk.Widget:
+        """Barre d'actions de la sélection (cases rondes), comme dans Fichiers de GNOME : visible dès qu'un
+        téléchargement est coché."""
+        bar = Gtk.ActionBar()
+        self.sel_label = Gtk.Label(css_classes=["heading"])
+        bar.set_center_widget(self.sel_label)
+        none = Gtk.Button(icon_name="edit-clear-symbolic", tooltip_text=tr("Tout désélectionner (Échap)"),
+                          action_name="win.select-none")
+        every = Gtk.Button(icon_name="edit-select-all-symbolic", tooltip_text=tr("Tout sélectionner (Ctrl+A)"),
+                           action_name="win.select-all")
+        bar.pack_start(none)
+        bar.pack_start(every)
+        for icon, tip, action in (("user-trash-symbolic", tr("Supprimer…"), "win.remove-selected"),
+                                  ("folder-symbolic", tr("Déplacer…"), "win.move-selected"),
+                                  ("media-playback-pause-symbolic", tr("Mettre en pause"), "win.pause-selected"),
+                                  ("media-playback-start-symbolic", tr("Reprendre"), "win.resume-selected")):
+            b = Gtk.Button(icon_name=icon, tooltip_text=tip, action_name=action)
+            if action == "win.remove-selected":
+                b.add_css_class("destructive-action")
+            bar.pack_end(b)
+        self.sel_revealer = Gtk.Revealer(child=bar, reveal_child=False,
+                                         transition_type=Gtk.RevealerTransitionType.SLIDE_UP)
+        return self.sel_revealer
+
+    def set_selected(self, tid: str, on: bool):
+        if on:
+            self.selected.add(tid)
+        else:
+            self.selected.discard(tid)
+        self._sync_selection()
+
+    def select_all(self):
+        """Ctrl+A : les téléchargements de la vue affichée."""
+        for tid, row in self.rows.items():
+            if matches(self.filter, row.transfer):
+                self.selected.add(tid)
+        self._sync_selection()
+
+    def select_none(self):
+        self.selected.clear()
+        self._sync_selection()
+
+    def _sync_selection(self):
+        self.selected &= set(self.rows)
+        for tid, row in self.rows.items():
+            on = tid in self.selected
+            if row.check.get_active() != on:
+                row.check.set_active(on)
+            (row.add_css_class if on else row.remove_css_class)("selected-transfer")
+        n = len(self.selected)
+        self.sel_revealer.set_reveal_child(n > 0)
+        self.sel_label.set_label(ntr("{0} sélectionné", "{0} sélectionnés", n).format(n))
+        for name in ("pause-selected", "resume-selected", "move-selected", "remove-selected", "select-none"):
+            self.lookup_action(name).set_enabled(n > 0)
+
+    def _selected_transfers(self) -> list:
+        out = []
+        for tid in list(self.selected):
+            t = self.app.engine.transfer(tid)
+            if t is not None:
+                out.append(t)
+        return out
+
+    def pause_selected(self):
+        for t in self._selected_transfers():
+            if t.state not in ("paused", "done", "moving"):
+                self.app.engine.pause(t.tid)
+        self.app.refresh()
+
+    def resume_selected(self):
+        for t in self._selected_transfers():
+            if t.state in ("paused", "done", "error"):
+                self.app.engine.resume(t.tid)
+        self.app.refresh()
+
+    def ask_move(self, tids: list):
+        """« Déplacer… » : un dossier, puis les fichiers y partent (pendant ou après le téléchargement)."""
+        tids = [t for t in tids if self.app.engine.transfer(t) is not None]
+        if not tids:
+            return
+        first = self.app.engine.transfer(tids[0])
+        choose_folder(self, tr("Déplacer vers"), first.save_path, lambda folder: self.move_to(tids, folder))
+
+    def move_to(self, tids: list, folder: str):
+        started = [tid for tid in tids if self.app.engine.move(tid, folder)]
+        if started:
+            toast(self, ntr("Déplacement de {0} téléchargement…", "Déplacement de {0} téléchargements…",
+                            len(started)).format(len(started)))
+        self.app.refresh()
+
+    def moved(self, tid: str, ok: bool, message: str):
+        """Fin d'un déplacement (moteur) : seul un échec est signalé."""
+        if not ok:
+            t = self.app.engine.transfer(tid)
+            alert(self, tr("Impossible de déplacer « {0} »").format(shown(t.name if t else tid)),
+                  message + "\n\n" + tr("Les fichiers sont restés où ils étaient. Un fichier du même nom "
+                                          "dans le dossier choisi n'est jamais écrasé."))
+        self.app.refresh()
+
     def toggle_transfer(self, tid: str):
         t = self.app.engine.transfer(tid)
         if t is None:
@@ -520,19 +643,27 @@ class MainWindow(Adw.ApplicationWindow):
             d.connect("closed", lambda *_: self.files_dialogs.pop(tid, None))
         d.present(self)
 
-    def ask_remove(self, tid: str):
-        t = self.app.engine.transfer(tid)
-        if t is None:
+    def ask_remove(self, tids):
+        """Un téléchargement (menu de la ligne) ou plusieurs (sélection)."""
+        if isinstance(tids, str):
+            tids = [tids]
+        transfers = [t for t in (self.app.engine.transfer(x) for x in tids) if t is not None]
+        if not transfers:
             return
 
         def answered(response):
             if response in ("remove", "delete"):
-                d = self.files_dialogs.pop(tid, None)
-                if d is not None:
-                    d.close()
-                self.app.engine.remove(tid, delete_files=response == "delete")
+                for t in transfers:
+                    d = self.files_dialogs.pop(t.tid, None)
+                    if d is not None:
+                        d.close()
+                    self.app.engine.remove(t.tid, delete_files=response == "delete")
+                    self.selected.discard(t.tid)
                 self.app.refresh()
-        alert(self, tr("Supprimer « {0} » ?").format(shown(t.name)),
+        heading = (tr("Supprimer « {0} » ?").format(shown(transfers[0].name)) if len(transfers) == 1 else
+                   ntr("Supprimer {0} téléchargement ?", "Supprimer {0} téléchargements ?",
+                       len(transfers)).format(len(transfers)))
+        alert(self, heading,
               tr("« Retirer de la liste » garde les fichiers déjà téléchargés."),
               responses=(("cancel", tr("Annuler")), ("remove", tr("Retirer de la liste")),
                          ("delete", tr("Supprimer aussi les fichiers"))),

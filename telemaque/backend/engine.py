@@ -94,7 +94,7 @@ class Transfer:
     @property
     def active(self) -> bool:
         """Quelque chose se passe encore (pour la question « Continuer en arrière-plan ? »)."""
-        return self.state in ("metadata", "checking", "downloading", "seeding")
+        return self.state in ("metadata", "checking", "downloading", "seeding", "moving")
 
     @property
     def downloading(self) -> bool:
@@ -172,6 +172,9 @@ class Engine:
         self._last_resume = time.monotonic()
         self.on_finished: Optional[Callable[[str], None]] = None     # fin d'un téléchargement (une fois)
         self.on_changed: Optional[Callable[[], None]] = None         # liste changée (ajout, retrait, métadonnées)
+        # déplacement fini : on_moved(tid, ok, message) — message d'erreur de libtorrent si raté
+        self.on_moved: Optional[Callable[[str, bool, str], None]] = None
+        self._moving: set[str] = set()
         self.errors: list[str] = []
         self.dht_enabled = bool(pack["enable_dht"])
         # libtorrent annonce l'adresse publique famille par famille (external_ip_alert) : garder les deux,
@@ -303,11 +306,31 @@ class Engine:
                 self._request_save(t.tid)
         self._save_meta()
 
+    def move(self, tid: str, dest: str) -> bool:
+        """Déplace les fichiers d'un téléchargement (en cours, en pause ou fini) vers le dossier `dest`, comme
+        qBittorrent : libtorrent les déplace dans son propre fil (simple renommage sur le même disque, copie
+        puis suppression sinon) et continue de télécharger au nouvel endroit. Rien n'est jamais écrasé
+        (fail_if_exist) : un fichier du même nom déjà là-bas fait échouer le déplacement, tout reste en
+        place. Fin annoncée par on_moved. False si rien n'a été lancé (même dossier, inconnu…)."""
+        h = self.handles.get(tid)
+        if h is None or tid in self._moving:
+            return False
+        dest = os.path.abspath(os.path.expanduser(dest))
+        if os.path.abspath(h.status().save_path) == dest:
+            return False
+        self._moving.add(tid)
+        h.move_storage(dest, lt.move_flags_t.fail_if_exist)
+        return True
+
+    def moving(self, tid: str) -> bool:
+        return tid in self._moving
+
     def remove(self, tid: str, delete_files: bool = False):
         h = self.handles.pop(tid, None)
         if h is None:
             return
         self.session.remove_torrent(h, lt.session.delete_files if delete_files else 0)
+        self._moving.discard(tid)
         self.meta.pop(tid, None)
         self._pending_saves.discard(tid)
         self._save_meta()
@@ -392,7 +415,9 @@ class Engine:
         uploaded = st.all_time_upload
         ratio = uploaded / st.total_wanted if st.total_wanted else 0.0
         error = ""
-        if st.errc and st.errc.value() != 0:
+        if tid in self._moving or getattr(st, "moving_storage", False):
+            state = "moving"
+        elif st.errc and st.errc.value() != 0:
             error = st.errc.message()
             state = "error"
         elif paused:
@@ -518,6 +543,16 @@ class Engine:
                     self._save_meta()
                     if self.on_finished:
                         self.on_finished(tid)
+            elif isinstance(a, (lt.storage_moved_alert, lt.storage_moved_failed_alert)):
+                tid = self._find(a.handle)
+                if tid is None:
+                    continue
+                self._moving.discard(tid)
+                ok = isinstance(a, lt.storage_moved_alert)
+                if ok:
+                    self._request_save(tid)                # nouvel emplacement retenu au redémarrage
+                if self.on_moved:
+                    self.on_moved(tid, ok, "" if ok else a.message())
             elif isinstance(a, lt.metadata_received_alert):
                 tid = self._find(a.handle)
                 if tid is not None:

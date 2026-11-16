@@ -94,6 +94,14 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   pause / reprise, menu Ouvrir / Afficher dans le dossier / Fichiers… / Supprimer…), accueil
   (Adw.StatusPage), Ctrl+O / Ctrl+V / glisser, question de fermeture (« Continuer en arrière-plan ? », case
   « Ne plus demander » → réglage `on_close`), `status_text`.
+- Sélection multiple et déplacement (demande de Tof, « comme qBittorrent ») : case ronde à droite de chaque
+  ligne (`Gtk.CheckButton` classe « selection-mode »), `MainWindow.selected` ; barre du bas dans un Gtk.Revealer
+  (« N sélectionnés », Tout désélectionner = Échap, Tout sélectionner = Ctrl+A sur la VUE courante, Reprendre,
+  Pause, Déplacer…, Supprimer… = Suppr ; une seule question pour N). « Arrêter » de qBittorrent 5 = notre pause.
+  Déplacer (aussi dans le menu de la ligne) : `Engine.move` → `move_storage(fail_if_exist)` — rien n'est écrasé
+  (refus, fichiers laissés en place, alerte), pendant ou après le téléchargement ; état « moving » (pause et
+  « Déplacer » grisés) jusqu'à `storage_moved(_failed)_alert` → `on_moved` ; nouvel emplacement retenu par les
+  données de reprise (testé après redémarrage). Testé : `MoveTest`, `selection_multiple` d'ui_smoke.
 - `ui/dialogs.py` : `AddDialog` (dossier, « Ajouter en pause », fichiers à cocher ; lien magnet : pas
   encore de fichiers), `MagnetEntryDialog` (prérempli depuis le presse-papiers), `FilesDialog` (cocher en
   cours de route, avancement par fichier). `ui/preferences.py` : Général (dossier, fermeture, partage,

@@ -316,6 +316,66 @@ class RealNetworkTest(unittest.TestCase):
             e.session.pause()
 
 
+class MoveTest(Base):
+    def test_move_after_download(self):
+        e = self.leecher()
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete))
+        moved = []
+        e.on_moved = lambda t, ok, msg: moved.append((t, ok))
+        dest = os.path.join(self.dir, "rangé")
+        os.makedirs(dest)
+        self.assertTrue(e.move(tid, dest))
+        self.assertTrue(until(self.engines, lambda: moved == [(tid, True)]))
+        self.assertEqual(e.content_path(tid), os.path.join(dest, "Série"))
+        self.assertEqual(os.path.getsize(os.path.join(dest, "Série", "Épisode 1.mkv")), 3_000_000)
+        self.assertFalse(os.path.exists(os.path.join(self.dst, "Série", "Épisode 1.mkv")), "plus à l'ancien endroit")
+        self.assertFalse(e.move(tid, dest), "même dossier : rien à faire")
+
+    def test_move_during_download_and_restart(self):
+        state = os.path.join(self.dir, "state-move")
+        e = Engine(state, listen_port=port(), local_only=True)
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        e.handles[tid].set_download_limit(300_000)
+        e.connect_peer(tid, "127.0.0.1", self.seed_port)
+        self.assertTrue(until([self.seeder, e], lambda: e.transfer(tid).done > 100_000))
+        moved = []
+        e.on_moved = lambda t, ok, msg: moved.append(ok)
+        dest = os.path.join(self.dir, "ailleurs")
+        e.move(tid, dest)                               # dossier créé par libtorrent
+        self.assertEqual(e.transfer(tid).state, "moving")
+        self.assertTrue(until([self.seeder, e], lambda: moved == [True]))
+        e.handles[tid].set_download_limit(0)
+        e.connect_peer(tid, "127.0.0.1", self.seed_port)
+        self.assertTrue(until([self.seeder, e], lambda: e.transfer(tid).complete, 30), "le téléchargement continue")
+        self.assertEqual(os.path.getsize(os.path.join(dest, "Série", "Épisode 1.mkv")), 3_000_000)
+        e.shutdown()
+        e2 = Engine(state, listen_port=port(), local_only=True)
+        self.engines.append(e2)
+        self.assertEqual(e2.content_path(tid), os.path.join(dest, "Série"), "nouvel emplacement retenu")
+
+    def test_move_never_overwrites(self):
+        e = self.leecher()
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete))
+        dest = os.path.join(self.dir, "occupé")
+        os.makedirs(os.path.join(dest, "Série"))
+        with open(os.path.join(dest, "Série", "lisez-moi.txt"), "w") as fh:
+            fh.write("précieux")
+        moved = []
+        e.on_moved = lambda t, ok, msg: moved.append((ok, msg))
+        e.move(tid, dest)
+        self.assertTrue(until(self.engines, lambda: moved))
+        self.assertFalse(moved[0][0], "refusé : un fichier du même nom est déjà là")
+        self.assertTrue(moved[0][1])
+        with open(os.path.join(dest, "Série", "lisez-moi.txt")) as fh:
+            self.assertEqual(fh.read(), "précieux", "jamais écrasé")
+        self.assertEqual(e.content_path(tid), os.path.join(self.dst, "Série"), "rien n'a bougé")
+        self.assertEqual(os.path.getsize(os.path.join(self.dst, "Série", "Épisode 1.mkv")), 3_000_000)
+
+
 class PersistTest(Base):
     def test_restart(self):
         """Fermé en plein téléchargement puis relancé : la liste revient, la pause aussi, et le

@@ -12,6 +12,7 @@ terminé, en pause, en partage).
   --files           fenêtre « Fichiers » d'un téléchargement
   --prefs=PAGE      Préférences (general, network, features)
   --close           question « Continuer en arrière-plan ? »
+  --select          deux téléchargements cochés (barre d'actions de la sélection)
   --delay=MS        attente avant la capture (5000)
 """
 
@@ -121,6 +122,9 @@ def later(win):
                 fh.truncate(size)
         t = samples.make_torrent(extra, os.path.join(TMP, "telemaque.torrent"), piece=4 * 1024 * 1024)
         win.add_torrent_file(t)
+    if args.get("select"):                          # deux téléchargements cochés : barre de la sélection
+        tids = [eng.read_torrent(path).tid for path, _s in torrents[:2]]
+        GLib.timeout_add(1200, lambda: ([win.set_selected(t, True) for t in tids], False)[1])
     if args.get("files"):
         tid = eng.read_torrent(torrents[0][0]).tid
         GLib.timeout_add(1500, lambda: (win.show_files(tid), False)[1])
