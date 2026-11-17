@@ -30,6 +30,8 @@ Debian package, like its siblings [Odysseus](https://github.com/ToFpon/Odysseus)
   open the result or show it in its folder.
 - **Several at once**: round check boxes on the right of each line, then pause, resume, move or remove
   the selection (Ctrl+A, Esc, Delete).
+- **Rename** the folder or any file, before starting or at any time afterwards (the torrent stays the same for
+  the tracker and the other peers; an existing file is never overwritten).
 - **Move the files** to another folder, during or after the download (never over an existing file).
 - **Sharing**: stops at the ratio you choose (1.0 by default), never stops, or stops right away.
 - **Incomplete files end with .part** (like qBittorrent's .!qB): no confusion between a finished file and one
@@ -72,6 +74,8 @@ Flatpak : un simple paquet Debian, comme ses frères [Odysseus](https://github.c
   fichiers) ; ouvrir le résultat ou l'afficher dans son dossier.
 - **Plusieurs à la fois** : cases rondes à droite de chaque ligne, puis pause, reprise, déplacement ou
   suppression de la sélection (Ctrl+A, Échap, Suppr).
+- **Renommer** le dossier ou n'importe quel fichier, avant de lancer ou à tout moment ensuite (le torrent reste le
+  même pour le tracker et les autres pairs ; un fichier déjà présent n'est jamais écrasé).
 - **Déplacer les fichiers** vers un autre dossier, pendant ou après le téléchargement (jamais par-dessus un
   fichier existant).
 - **Le partage** : s'arrête au ratio choisi (1,0 par défaut), ne s'arrête jamais, ou s'arrête tout de suite.

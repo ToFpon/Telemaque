@@ -31,6 +31,49 @@ class TorrentError(Exception):
     """Fichier .torrent illisible, lien magnet invalide…"""
 
 
+class RenameError(Exception):
+    """Nouveau nom refusé. `code` : empty, dot, slash, long, taken (déjà pris dans le torrent), exists (déjà
+    sur le disque), busy (déplacement, vérification ou informations du torrent pas encore reçues)."""
+
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
+
+
+def valid_component(name: str) -> str:
+    """Un nom de fichier ou de dossier choisi par l'utilisateur (espaces du bord retirées)."""
+    name = (name or "").strip()
+    if not name:
+        raise RenameError("empty")
+    if name in (".", ".."):
+        raise RenameError("dot")
+    if "/" in name or "\0" in name:
+        raise RenameError("slash")
+    if len(os.fsencode(name)) > 240:              # 255 octets au plus, « .part » compris
+        raise RenameError("long")
+    return name
+
+
+def renamed(paths: dict, index: Optional[int] = None, name: str = "", root: Optional[str] = None) -> dict:
+    """Chemins des fichiers (relatifs au dossier d'enregistrement) après avoir renommé un fichier (son nom
+    seulement, il reste dans son dossier) ou le dossier du torrent (premier élément de tous les chemins).
+    Deux fichiers ne peuvent pas finir sous le même chemin."""
+    out = dict(paths)
+    if index is not None:
+        out[index] = os.path.join(os.path.dirname(paths[index]), valid_component(name))
+    if root is not None:
+        root = valid_component(root)
+        for i, p in paths.items():
+            head, sep, rest = p.partition(os.sep)
+            out[i] = root + sep + rest if sep else root
+    seen = set()
+    for p in out.values():
+        if p in seen:
+            raise RenameError("taken")
+        seen.add(p)
+    return out
+
+
 class Duplicate(TorrentError):
     def __init__(self, tid: str):
         super().__init__(tid)
@@ -180,6 +223,7 @@ class Engine:
         self.on_moved: Optional[Callable[[str, bool, str], None]] = None
         self._moving: set[str] = set()
         self._in_alerts = False
+        self._cleanup: set[str] = set()         # anciens dossiers de torrents renommés, à retirer une fois vides
         self.errors: list[str] = []
         self.dht_enabled = bool(pack["enable_dht"])
         # libtorrent annonce l'adresse publique famille par famille (external_ip_alert) : garder les deux,
@@ -221,7 +265,7 @@ class Engine:
         return params
 
     def add_torrent_file(self, path: str, save_path: str, wanted: Optional[list] = None,
-                         paused: bool = False, delete_source: bool = False) -> str:
+                         paused: bool = False, delete_source: bool = False, names: Optional[dict] = None) -> str:
         """wanted : indices des fichiers à télécharger (None : tous). delete_source : le fichier .torrent
         est supprimé une fois ses données de reprise ÉCRITES (elles contiennent tout le torrent) — un
         plantage juste après l'ajout ne fait rien perdre."""
@@ -238,6 +282,13 @@ class Engine:
             keep = set(wanted)
             params.file_priorities = [4 if i in keep else 0 for i in range(ti.num_files())]
         meta = {"added": time.time()}
+        if names:                    # noms choisis dans le dialogue d'ajout ({indice: chemin}, cf. renamed)
+            fs = ti.files()
+            mine = {int(i): p for i, p in names.items()
+                    if 0 <= int(i) < fs.num_files() and p != fs.file_path(int(i))}
+            if mine:
+                meta["names"] = {str(i): p for i, p in mine.items()}
+                params.renamed_files = {i: p + self.part_ext for i, p in mine.items()}
         if delete_source and path.lower().endswith(".torrent"):
             meta["delete_source"] = os.path.abspath(path)
         return self._add(tid, self._add_params(params, save_path, paused), meta)
@@ -339,6 +390,80 @@ class Engine:
         for tid in list(self.handles):
             self._sync_names(tid)
 
+    # -- renommer ---------------------------------------------------------------------------------
+    def _base(self, tid: str, index: int, orig) -> str:
+        """Nom voulu d'un fichier (sans « .part ») : celui choisi par l'utilisateur, sinon celui du torrent."""
+        return self.meta.get(tid, {}).get("names", {}).get(str(index)) or orig.file_path(index)
+
+    def paths(self, tid: str) -> dict:
+        """{indice: chemin voulu} des vrais fichiers ({} sans les informations du torrent)."""
+        h = self.handles.get(tid)
+        ti = h.torrent_file() if h is not None and h.status().has_metadata else None
+        if ti is None:
+            return {}
+        orig = ti.orig_files()
+        return {i: self._base(tid, i, orig) for i in range(orig.num_files()) if not _is_pad(orig, i)}
+
+    def rename(self, tid: str, index: Optional[int] = None, name: str = "", root: Optional[str] = None) -> bool:
+        """Renomme un fichier (son nom) ou le dossier du torrent, comme qBittorrent. Seuls les noms sur le disque
+        changent : le torrent reste le même pour le tracker et les autres pairs (empreinte et numéros de
+        fichiers). libtorrent déplace lui-même les fichiers (« .part » gardé), les noms sont retenus au
+        redémarrage. Jamais par-dessus un fichier ou un dossier déjà là (RenameError « exists »).
+        Torrent d'un seul fichier : `root` renomme ce fichier."""
+        h = self.handles.get(tid)
+        if h is None:
+            return False
+        st = h.status()
+        S = lt.torrent_status.states
+        if (tid in self._moving or not st.has_metadata
+                or st.state in (S.checking_files, S.checking_resume_data)):
+            raise RenameError("busy")
+        before = self.paths(tid)
+        if root is not None and not all(os.sep in p for p in before.values()):
+            root, index, name = None, next(iter(before)), root       # un seul fichier : c'est lui
+        after = renamed(before, index, name, root)
+        changed = {i: p for i, p in after.items() if p != before[i]}
+        if not changed:
+            return False
+        ext = self.part_ext
+        old_root = next(iter(before.values())).split(os.sep, 1)[0]
+        if root is not None:
+            if os.path.lexists(os.path.join(st.save_path, root)):
+                raise RenameError("exists")
+        else:
+            for p in changed.values():
+                target = os.path.join(st.save_path, p)
+                if os.path.lexists(target) or (ext and os.path.lexists(target + ext)):
+                    raise RenameError("exists")
+        orig = h.torrent_file().orig_files()
+        names = {str(i): p for i, p in after.items() if p != orig.file_path(i)}
+        if names:
+            self.meta.setdefault(tid, {})["names"] = names
+        else:
+            self.meta.setdefault(tid, {}).pop("names", None)
+        self._save_meta()
+        if root is not None:                       # l'ancien dossier, vidé par les renommages : retiré
+            self._cleanup.add(os.path.join(st.save_path, old_root))
+        self._sync_names(tid)
+        self._request_save(tid)
+        if self.on_changed:
+            self.on_changed()
+        return True
+
+    def _clean_dirs(self):
+        """Anciens dossiers d'un torrent renommé : retirés s'ils sont vides (jamais un fichier)."""
+        for top in list(self._cleanup):
+            if not os.path.isdir(top) or os.path.islink(top):
+                self._cleanup.discard(top)
+                continue
+            for d, _dirs, _files in os.walk(top, topdown=False):
+                try:
+                    os.rmdir(d)
+                except OSError:
+                    pass
+            if not os.path.exists(top):
+                self._cleanup.discard(top)
+
     def _sync_names(self, tid: str):
         """Comme qBittorrent (« .!qB ») : un fichier pas encore complet porte l'extension `part_ext` sur le
         disque, il reprend son vrai nom dès qu'il est complet — jamais de confusion entre un fichier fini et
@@ -360,7 +485,7 @@ class Engine:
         for i in range(fs.num_files()):
             if _is_pad(fs, i):
                 continue
-            base = orig.file_path(i)
+            base = self._base(tid, i, orig)
             complete = i < len(progress) and progress[i] >= fs.file_size(i)
             want = base + self.part_ext if self.part_ext and not complete else base
             if fs.file_path(i) != want:
@@ -397,7 +522,7 @@ class Engine:
         for i in range(fs.num_files()):
             if _is_pad(fs, i):
                 continue
-            out.append(FileEntry(i, orig.file_path(i), fs.file_size(i),
+            out.append(FileEntry(i, self._base(tid, i, orig), fs.file_size(i),
                                  progress[i] if i < len(progress) else 0,
                                  (prio[i] if i < len(prio) else 4) > 0))
         return out
@@ -443,6 +568,8 @@ class Engine:
             real = [i for i in range(fs.num_files()) if not _is_pad(fs, i)]
             if len(real) == 1 and os.sep not in fs.file_path(real[0]).rstrip(os.sep):
                 return os.path.join(st.save_path, fs.file_path(real[0]))
+            if real:                         # dossier du torrent, peut-être renommé
+                return os.path.join(st.save_path, fs.file_path(real[0]).split(os.sep, 1)[0])
         return os.path.join(st.save_path, st.name) if st.name else st.save_path
 
     # -- état ----------------------------------------------------------------------------------
@@ -454,6 +581,16 @@ class Engine:
     def transfer(self, tid: str) -> Optional[Transfer]:
         h = self.handles.get(tid)
         return self._snapshot(tid, h) if h is not None else None
+
+    def _shown_name(self, tid: str, st) -> str:
+        """Nom dans la liste : celui du torrent, ou le nom choisi pour son dossier / son fichier."""
+        m = self.meta.get(tid, {})
+        if m.get("names") and st.has_metadata:
+            paths = self.paths(tid)
+            if paths:
+                first = next(iter(paths.values()))
+                return first.split(os.sep, 1)[0] if all(os.sep in p for p in paths.values()) else first
+        return st.name or m.get("name", "") or tid
 
     def _snapshot(self, tid: str, h) -> Transfer:
         st = h.status()
@@ -483,7 +620,7 @@ class Engine:
         up = 0 if paused else st.upload_payload_rate
         left = max(0, st.total_wanted - st.total_wanted_done)
         eta = int(left / rate) if rate > 0 and left else (0 if complete else -1)
-        return Transfer(tid=tid, name=st.name or self.meta.get(tid, {}).get("name", "") or tid,
+        return Transfer(tid=tid, name=self._shown_name(tid, st),
                         state=state, progress=(st.total_wanted_done / st.total_wanted if st.total_wanted else 0.0),
                         size=st.total_wanted, done=st.total_wanted_done, down_rate=rate,
                         up_rate=up, eta=eta, peers=st.num_peers, seeds=st.num_seeds,
@@ -619,6 +756,9 @@ class Engine:
                 tid = self._find(a.handle)
                 if tid is not None:
                     self._sync_names(tid)
+            elif isinstance(a, lt.file_renamed_alert):
+                if self._cleanup:
+                    self._clean_dirs()
             elif isinstance(a, lt.file_rename_failed_alert):
                 self.errors.append(a.message())
             elif isinstance(a, lt.metadata_received_alert):

@@ -93,6 +93,68 @@ class DialogWindow(Adw.Window):
             self.set_transient_for(win)
         super().present()
 
+class RenameDialog(DialogWindow):
+    """« Renommer » comme Nautilus : un champ, le nom sélectionné sans son extension, Entrée pour valider.
+    `apply(nom)` renvoie un message d'erreur (affiché sous le champ, la fenêtre reste) ou None (fermée)."""
+
+    def __init__(self, title: str, current: str, apply: Callable[[str], Optional[str]], folder: bool = False):
+        from ..i18n import tr
+        super().__init__(title=title, content_width=460, content_height=-1)
+        self.apply = apply
+        tv = Adw.ToolbarView()
+        header = Adw.HeaderBar(show_end_title_buttons=False, show_start_title_buttons=False)
+        cancel = Gtk.Button(label=tr("Annuler"))
+        cancel.connect("clicked", lambda *_: self.close())
+        header.pack_start(cancel)
+        self.ok = Gtk.Button(label=tr("Renommer"), css_classes=["suggested-action"])
+        self.ok.connect("clicked", lambda *_: self._go())
+        header.pack_end(self.ok)
+        tv.add_top_bar(header)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=18, margin_bottom=24,
+                      margin_start=18, margin_end=18)
+        group = Adw.PreferencesGroup()
+        self.entry = Adw.EntryRow(title=tr("Nom du dossier") if folder else tr("Nom du fichier"),
+                                  text=shown(current))
+        self.entry.connect("entry-activated", lambda *_: self._go())
+        self.entry.connect("changed", lambda *_: self._clear())
+        group.add(self.entry)
+        box.append(group)
+        self.message = Gtk.Label(xalign=0, wrap=True, visible=False, css_classes=["error", "caption"])
+        box.append(self.message)
+        tv.set_content(box)
+        self.set_child(tv)
+        self.set_default_widget(self.ok)
+        stem = len(current) if folder else len(_stem(current))
+
+        def select():
+            self.entry.grab_focus()
+            self.entry.select_region(0, stem)
+            return False
+        GLib.idle_add(select)
+
+    def _clear(self):
+        self.message.set_visible(False)
+        self.entry.remove_css_class("error")
+
+    def _go(self):
+        err = self.apply(self.entry.get_text())
+        if err:
+            self.message.set_label(err)
+            self.message.set_visible(True)
+            self.entry.add_css_class("error")
+            return
+        self.close()
+
+
+def _stem(name: str) -> str:
+    """Nom sans extension, comme la sélection de Nautilus (« film.tar.gz » → « film »)."""
+    for ext in (".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst"):
+        if name.lower().endswith(ext) and len(name) > len(ext):
+            return name[:-len(ext)]
+    stem, dot, ext = name.rpartition(".")
+    return stem if dot and stem else name
+
+
 class AlertDialog(Adw.MessageDialog):
     """Remplace Adw.AlertDialog : Adw.MessageDialog, la boîte de Nautilus 46, large comme elle."""
 

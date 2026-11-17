@@ -18,8 +18,8 @@ from .. import APP_ID, APP_NAME, features, format as fmt  # noqa: E402
 from ..backend import engine as eng  # noqa: E402
 from ..i18n import ntr, tr  # noqa: E402
 from ..settings import settings  # noqa: E402
-from .common import (alert, choose_files, choose_folder, open_with_default, show_in_folder, shown,  # noqa: E402
-                     toast)
+from .common import (RenameDialog, alert, choose_files, choose_folder, open_with_default, show_in_folder,  # noqa: E402
+                     shown, toast)
 
 STATE_ICONS = {"paused": "media-playback-start-symbolic", "done": "media-playback-start-symbolic",
                "error": "view-refresh-symbolic"}
@@ -139,6 +139,7 @@ class TransferRow(Gtk.ListBoxRow):
         menu.append_section(None, first)
         second = Gio.Menu()
         second.append(tr("Fichiers…"), "row.files")
+        second.append(tr("Renommer…"), "row.rename")
         second.append(tr("Déplacer…"), "row.move")
         menu.append_section(None, second)
         third = Gio.Menu()
@@ -158,6 +159,7 @@ class TransferRow(Gtk.ListBoxRow):
         for name, cb in (("open", lambda: win.open_transfer(self.tid)),
                          ("show", lambda: win.show_transfer(self.tid)),
                          ("files", lambda: win.show_files(self.tid)),
+                         ("rename", lambda: win.ask_rename(self.tid)),
                          ("move", lambda: win.ask_move([self.tid])),
                          ("remove", lambda: win.ask_remove(self.tid))):
             a = Gio.SimpleAction.new(name, None)
@@ -190,6 +192,7 @@ class TransferRow(Gtk.ListBoxRow):
         self.actions["open"].set_enabled(exists and t.complete)
         self.actions["show"].set_enabled(exists)
         self.actions["files"].set_enabled(t.has_metadata)
+        self.actions["rename"].set_enabled(t.has_metadata and t.state not in ("moving", "checking"))
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -418,12 +421,13 @@ class MainWindow(Adw.ApplicationWindow):
         from .dialogs import AddDialog
         AddDialog(self, magnet=uri).present(self)
 
-    def start(self, *, torrent_path: str = "", magnet: str = "", save_path: str, wanted=None, paused=False):
-        """Appelé par le dialogue d'ajout."""
+    def start(self, *, torrent_path: str = "", magnet: str = "", save_path: str, wanted=None, paused=False,
+              names=None):
+        """Appelé par le dialogue d'ajout (names : noms choisis, {indice: chemin})."""
         try:
             if torrent_path:
                 self.app.engine.add_torrent_file(torrent_path, save_path, wanted=wanted, paused=paused,
-                                                 delete_source=features.enabled("delete_torrent"))
+                                                 delete_source=features.enabled("delete_torrent"), names=names)
             else:
                 self.app.engine.add_magnet(magnet, save_path, paused=paused)
         except eng.Duplicate:
@@ -633,6 +637,34 @@ class MainWindow(Adw.ApplicationWindow):
             show_in_folder(self, path)
         else:
             toast(self, tr("Les fichiers ne sont plus là"))
+
+    def ask_rename(self, tid: str):
+        """« Renommer… » d'une ligne : le dossier du torrent, ou son fichier s'il est seul (comme qBittorrent).
+        Les fichiers d'un dossier se renomment un par un dans « Fichiers… »."""
+        from .dialogs import root_of
+        paths = self.app.engine.paths(tid)
+        if not paths:
+            return None
+        root = root_of(paths)
+        folder = bool(root)
+        current = root or next(iter(paths.values()))
+        d = RenameDialog(tr("Renommer le dossier") if folder else tr("Renommer le fichier"), current,
+                         lambda name: self.rename(tid, root=name), folder=folder)
+        d.present(self)
+        return d
+
+    def rename(self, tid: str, index=None, name: str = "", root=None):
+        """Renomme (moteur) : message d'erreur à afficher, ou None."""
+        from .dialogs import rename_error
+        try:
+            self.app.engine.rename(tid, index=index, name=name, root=root)
+        except eng.RenameError as e:
+            return rename_error(e.code)
+        self.app.refresh()
+        d = self.files_dialogs.get(tid)
+        if d is not None:
+            d.refresh()
+        return None
 
     def show_files(self, tid: str):
         from .dialogs import FilesDialog

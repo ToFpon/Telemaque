@@ -109,6 +109,19 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   `set_wanted`, fin de déplacement ; jamais pendant une vérification ni un déplacement. Noms gardés par les
   données de reprise. `files()` montre les vrais noms, `content_path` d'un fichier seul = son nom du moment.
   Testé : `PartExtTest` (pause + redémarrage, coupure, fichier seul, fichier décoché), `extension_part` d'ui_smoke.
+- Renommer (demande de Tof, comme qBittorrent) : seuls les noms SUR LE DISQUE changent — le torrent reste le même
+  pour le tracker et les pairs (empreinte, numéros de fichiers). Noms voulus = `meta["names"]` ({indice: chemin},
+  sans « .part ») par-dessus `orig_files()` (`_base`), appliqués par `_sync_names` (`rename_file`, « .part »
+  compris), retenus au redémarrage. `engine.renamed(paths, index, name, root)` (pur : `valid_component`, deux
+  fichiers au même chemin refusés) sert au dialogue d'ajout et au moteur ; `Engine.rename` : fichier (son nom, il
+  reste dans son dossier) ou dossier du torrent (premier élément de tous les chemins ; torrent d'un seul fichier :
+  ce fichier) ; jamais par-dessus ce qui existe sur le disque, refusé pendant un déplacement / une vérification /
+  sans informations (`RenameError.code`, messages : `dialogs.rename_error`). Ancien dossier vidé retiré
+  (`_cleanup`, sur `file_renamed_alert`, jamais un fichier). Ajout : `add_torrent_file(names=)` →
+  `params.renamed_files`. Nom de la ligne / `content_path` = noms choisis (`_shown_name`). Interface :
+  `common.RenameDialog` (nom sélectionné sans l'extension comme Nautilus, erreur sous le champ, la fenêtre reste) ;
+  crayon du titre et de chaque fichier dans le dialogue d'ajout, « Renommer… » du menu de la ligne (dossier ou
+  fichier seul), crayon de chaque fichier dans « Fichiers… ». Testé : `RenameTest`, `renommer` d'ui_smoke.
 - PIÈGE libtorrent : une alerte ne vit que jusqu'au `pop_alerts()` suivant. Un rappel (`on_moved` → la fenêtre
   → `refresh()` → `poll()`) qui relançait la lecture des alertes PENDANT la boucle libérait les suivantes →
   segfault (`polymorphic_id_generator<alert>`, vu sous gdb). `_handle_alerts` refuse la réentrée (`_in_alerts`) ;

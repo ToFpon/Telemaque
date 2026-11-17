@@ -17,9 +17,31 @@ from .. import format as fmt  # noqa: E402
 from ..backend import engine as eng  # noqa: E402
 from ..i18n import ntr, tr  # noqa: E402
 from ..settings import settings  # noqa: E402
-from .common import DialogWindow, choose_folder, dialog_shell, focus_later, path_row, shown  # noqa: E402
+from .common import (DialogWindow, RenameDialog, choose_folder, dialog_shell, focus_later, path_row,  # noqa: E402
+                     shown)
 
 MAX_LISTED = 2000             # au-delà, pas de cases une par une (packs immenses) : tout est gardé
+
+
+def rename_error(code: str) -> str:
+    """Message d'un nom refusé par le moteur (RenameError.code)."""
+    return {
+        "empty": tr("Le nom ne peut pas être vide."),
+        "dot": tr("« . » et « .. » ne sont pas des noms possibles."),
+        "slash": tr("Le nom ne peut pas contenir de « / »."),
+        "long": tr("Ce nom est trop long."),
+        "taken": tr("Un autre fichier de ce torrent porte déjà ce nom."),
+        "exists": tr("Un fichier ou un dossier de ce nom existe déjà à cet endroit. Il n'est jamais écrasé."),
+        "busy": tr("Impossible pour l'instant (informations du torrent attendues, vérification ou déplacement "
+                   "en cours) : réessayez dans un moment."),
+    }.get(code, code)
+
+
+def root_of(paths: dict) -> str:
+    """Dossier d'un torrent de plusieurs fichiers (premier élément commun), "" pour un fichier seul."""
+    if not paths or not all(os.sep in p for p in paths.values()):
+        return ""
+    return next(iter(paths.values())).split(os.sep, 1)[0]
 
 
 def _strip_root(path: str, name: str) -> str:
@@ -31,21 +53,29 @@ def _strip_root(path: str, name: str) -> str:
 class FileList(Gtk.ListBox):
     """Fichiers avec une case chacun (garder / laisser), leur taille et, en cours, leur avancement."""
 
-    def __init__(self, files, root_name: str, on_toggle=None):
+    def __init__(self, files, root_name: str, on_toggle=None, on_rename=None):
         super().__init__(selection_mode=Gtk.SelectionMode.NONE, css_classes=["boxed-list"])
         self.on_toggle = on_toggle
+        self.root = root_name
         self.checks: dict[int, Gtk.CheckButton] = {}
         self.sizes: dict[int, Gtk.Label] = {}
+        self.rows: dict[int, Adw.ActionRow] = {}
         self.files = {f.index: f for f in files}
         for f in sorted(files, key=lambda f: f.path.casefold()):
             row = Adw.ActionRow(title=shown(_strip_root(f.path, root_name)), use_markup=False)
             row.set_title_lines(2)
+            self.rows[f.index] = row
             check = Gtk.CheckButton(active=f.wanted, valign=Gtk.Align.CENTER)
             check.connect("toggled", self._toggled, f.index)
             row.add_prefix(check)
             row.set_activatable_widget(check)
             label = Gtk.Label(css_classes=["dim-label", "numeric"])
             row.add_suffix(label)
+            if on_rename is not None:
+                pen = Gtk.Button(icon_name="document-edit-symbolic", valign=Gtk.Align.CENTER,
+                                 tooltip_text=tr("Renommer…"), css_classes=["flat", "rename-file"])
+                pen.connect("clicked", lambda _b, i=f.index: on_rename(i))
+                row.add_suffix(pen)
             self.checks[f.index] = check
             self.sizes[f.index] = label
             self.append(row)
@@ -61,6 +91,16 @@ class FileList(Gtk.ListBox):
     def set_all(self, value: bool):
         for c in self.checks.values():
             c.set_active(value)
+
+    def set_paths(self, paths: dict, root: str):
+        """Noms changés (renommés) : titres des lignes mis à jour."""
+        self.root = root
+        for i, p in paths.items():
+            row = self.rows.get(i)
+            if row is not None:
+                title = shown(_strip_root(p, root))
+                if row.get_title() != title:
+                    row.set_title(title)
 
     def refresh(self, files):
         for f in files:
@@ -99,6 +139,15 @@ class AddDialog:
                                                         "torrent")))
         title.set_subtitle_selectable(False)
         title.set_title_lines(3)
+        self.title = title
+        self.paths = {f.index: f.path for f in info.files} if info else {}
+        if info:
+            pen = Gtk.Button(icon_name="document-edit-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
+                             tooltip_text=tr("Renommer le dossier…") if root_of(self.paths)
+                             else tr("Renommer le fichier…"))
+            pen.connect("clicked", lambda *_: self.ask_rename())
+            title.add_suffix(pen)
+            self.rename_button = pen
         head.add(title)
         page.add(head)
         where = Adw.PreferencesGroup(title=tr("Enregistrer dans"))
@@ -117,7 +166,8 @@ class AddDialog:
             all_none.append(b_all)
             all_none.append(b_none)
             group.set_header_suffix(all_none)
-            self.files = FileList(info.files, info.name, on_toggle=lambda *_: self._sync())
+            self.files = FileList(info.files, info.name, on_toggle=lambda *_: self._sync(),
+                                  on_rename=self.ask_rename)
             b_all.connect("clicked", lambda *_: self.files.set_all(True))
             b_none.connect("clicked", lambda *_: self.files.set_all(False))
             group.add(self.files)
@@ -127,6 +177,31 @@ class AddDialog:
 
     def present(self, parent=None):
         self.dialog.present(parent or self.win)
+
+    def ask_rename(self, index=None):
+        """Crayon du titre (dossier du torrent, ou le fichier s'il est seul) ou d'un fichier."""
+        root = root_of(self.paths)
+        if index is None and not root:
+            index = next(iter(self.paths))
+        folder = index is None
+        current = root if folder else os.path.basename(self.paths[index])
+        d = RenameDialog(tr("Renommer le dossier") if folder else tr("Renommer le fichier"), current,
+                         lambda name: self.rename(index, name), folder=folder)
+        d.present(self.dialog)
+        return d
+
+    def rename(self, index, name: str):
+        """Nouveau nom (rien n'existe encore sur le disque) : message d'erreur, ou None."""
+        try:
+            self.paths = (eng.renamed(self.paths, root=name) if index is None
+                          else eng.renamed(self.paths, index, name))
+        except eng.RenameError as e:
+            return rename_error(e.code)
+        root = root_of(self.paths)
+        self.title.set_title(shown(root or next(iter(self.paths.values()))))
+        if self.files is not None:
+            self.files.set_paths(self.paths, root)
+        return None
 
     def _browse(self, row):
         choose_folder(self.dialog, tr("Enregistrer dans"), row.get_text(), lambda p: row.set_text(p))
@@ -156,9 +231,12 @@ class AddDialog:
             alert(self.dialog, tr("Impossible d'utiliser ce dossier"), tr("Vous n'avez pas le droit d'y écrire."))
             return
         wanted = self.files.wanted() if self.files is not None else None
+        names = None
+        if self.info is not None and any(self.paths[f.index] != f.path for f in self.info.files):
+            names = self.paths
         self.dialog.close()
         self.win.start(torrent_path=self.torrent_path, magnet=self.magnet, save_path=folder, wanted=wanted,
-                       paused=self.paused.get_active())
+                       paused=self.paused.get_active(), names=names)
 
 
 def _magnet_name(uri: str) -> str:
@@ -227,7 +305,8 @@ class FilesDialog(DialogWindow):
         page = Adw.PreferencesPage()
         group = Adw.PreferencesGroup(description=tr("Décochez un fichier pour ne pas le télécharger."))
         files = win.app.engine.files(tid)
-        self.list = FileList(files, t.name if t else "", on_toggle=self._toggle)
+        self.list = FileList(files, root_of({f.index: f.path for f in files}), on_toggle=self._toggle,
+                             on_rename=self.ask_rename)
         group.add(self.list)
         page.add(group)
         tv.set_content(page)
@@ -237,5 +316,17 @@ class FilesDialog(DialogWindow):
         self.win.app.engine.set_wanted(self.tid, index, wanted)
         self.win.app.refresh()
 
+    def ask_rename(self, index: int):
+        paths = self.win.app.engine.paths(self.tid)
+        if index not in paths:
+            return None
+        d = RenameDialog(tr("Renommer le fichier"), os.path.basename(paths[index]),
+                         lambda name: self.win.rename(self.tid, index=index, name=name))
+        d.present(self)
+        return d
+
     def refresh(self):
-        self.list.refresh(self.win.app.engine.files(self.tid))
+        files = self.win.app.engine.files(self.tid)
+        self.list.refresh(files)
+        paths = {f.index: f.path for f in files}
+        self.list.set_paths(paths, root_of(paths))

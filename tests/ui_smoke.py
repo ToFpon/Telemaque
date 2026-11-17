@@ -45,6 +45,7 @@ from telemaque.app import TelemaqueApp  # noqa: E402
 from telemaque.backend.engine import Engine  # noqa: E402
 from telemaque.i18n import ntr, tr  # noqa: E402
 from telemaque.settings import settings  # noqa: E402
+from telemaque.ui.common import RenameDialog  # noqa: E402
 from telemaque.ui.window import status_text  # noqa: E402
 
 SRC = os.path.join(TMP, "partage")
@@ -471,6 +472,94 @@ def selection_multiple(win):
     yield Wait(3, until=lambda: tids[0] not in win.rows)
     check(tids[0] not in win.rows and tids[1] in win.rows and not win.selected, "seul le coché est retiré")
     check(os.path.exists(os.path.join(dest, "Série", "Épisode 1.mkv")), "« Retirer de la liste » : fichiers gardés")
+
+
+def rename_dialogs(win, title):
+    return [w for w in Gtk.Window.list_toplevels()
+            if w.get_visible() and isinstance(w, RenameDialog) and w.get_title() == title]
+
+
+@step
+def renommer(win):
+    """Renommer : dans le dialogue d'ajout (dossier + un fichier), puis depuis la liste (« Renommer… », menu de la
+    ligne) et « Fichiers… ». Le torrent reste le même (empreinte, numéros de fichiers) : seuls les noms changent."""
+    win.add_torrent_file(TORRENT)
+    yield pump(0.5)
+    dl = [d for d in dialogs(win) if d.get_title() == tr("Ajouter un torrent")]
+    check(len(dl) == 1, "dialogue d'ajout ouvert")
+    if not dl:
+        return
+    d = dl[0]
+    pen = find(d, Gtk.Button, lambda b: b.get_tooltip_text() == tr("Renommer le dossier…"))
+    check(len(pen) == 1, "crayon du titre : renommer le dossier")
+    pen[0].emit("clicked")
+    yield pump(0.3)
+    rd = rename_dialogs(win, tr("Renommer le dossier"))
+    check(len(rd) == 1 and rd[0].entry.get_text() == "Série", "fenêtre « Renommer le dossier », nom actuel")
+    rd[0].entry.set_text("Série/x")
+    rd[0]._go()
+    check(rd[0].get_visible() and rd[0].message.get_visible(), "nom refusé : message, la fenêtre reste")
+    rd[0].entry.set_text("Ma série")
+    rd[0]._go()
+    yield pump(0.2)
+    check(not rd[0].get_visible(), "nom accepté : fenêtre fermée")
+    rows = find(d, Adw.ActionRow, lambda r: r.get_title() == "Épisode 1.mkv")
+    pens = find(rows[0], Gtk.Button, lambda b: "rename-file" in b.get_css_classes()) if rows else []
+    check(len(pens) == 1, "crayon sur chaque fichier")
+    if pens:
+        pens[0].emit("clicked")
+        yield pump(0.3)
+        rf = rename_dialogs(win, tr("Renommer le fichier"))
+        check(len(rf) == 1, "fenêtre « Renommer le fichier »")
+        if rf:
+            check(rf[0].entry.get_text() == "Épisode 1.mkv", "nom du fichier proposé")
+            rf[0].entry.set_text("S01E01.mkv")
+            rf[0]._go()
+            yield pump(0.2)
+    check(bool(find(d, Adw.ActionRow, lambda r: r.get_title() == "S01E01.mkv")), "ligne renommée dans le dialogue")
+    check(bool(find(d, Adw.ActionRow, lambda r: r.get_title() == "Ma série")), "titre renommé dans le dialogue")
+    press_action_button(d)
+    yield Wait(3, until=lambda: by_name("Ma série") is not None)
+    t = by_name("Ma série")
+    check(t is not None, "téléchargement ajouté sous le nouveau nom")
+    if t is None:
+        return
+    leecher.connect_peer(t.tid, "127.0.0.1", SEED_PORT)
+    yield Wait(20, until=lambda: by_name("Ma série") and by_name("Ma série").complete
+               and os.path.exists(os.path.join(DST, "Ma série", "S01E01.mkv")))
+    check(os.path.getsize(os.path.join(DST, "Ma série", "S01E01.mkv")) == 3_000_000, "téléchargé sous les noms choisis")
+    check(not os.path.exists(os.path.join(DST, "Série")), "rien sous l'ancien nom")
+    # depuis la liste : le dossier
+    row = win.rows[t.tid]
+    check(row.actions["rename"].get_enabled(), "« Renommer… » dans le menu de la ligne")
+    os.makedirs(os.path.join(DST, "Occupé"))
+    rd = win.ask_rename(t.tid)
+    yield pump(0.3)
+    rd.entry.set_text("Occupé")
+    rd._go()
+    check(rd.get_visible() and rd.message.get_visible(), "dossier déjà là : refusé, jamais écrasé")
+    rd.entry.set_text("Série finale")
+    rd._go()
+    yield Wait(5, until=lambda: os.path.exists(os.path.join(DST, "Série finale", "S01E01.mkv"))
+               and not os.path.exists(os.path.join(DST, "Ma série")))
+    check(os.path.getsize(os.path.join(DST, "Série finale", "S01E01.mkv")) == 3_000_000, "dossier renommé sur le disque")
+    check(not os.path.exists(os.path.join(DST, "Ma série")), "ancien dossier retiré")
+    yield pump(0.2)
+    check(row.name.get_label() == "Série finale", "ligne : nouveau nom")
+    # « Fichiers… » : un fichier
+    win.show_files(t.tid)
+    yield pump(0.4)
+    fd = win.files_dialogs.get(t.tid)
+    index = next(i for i, p in app.engine.paths(t.tid).items() if p.endswith("lisez-moi.txt"))
+    rf = fd.ask_rename(index)
+    yield pump(0.3)
+    rf.entry.set_text("LISEZ-MOI.txt")
+    rf._go()
+    yield Wait(5, until=lambda: os.path.exists(os.path.join(DST, "Série finale", "LISEZ-MOI.txt")))
+    check(os.path.exists(os.path.join(DST, "Série finale", "LISEZ-MOI.txt")), "« Fichiers… » : fichier renommé")
+    check(bool(find(fd, Adw.ActionRow, lambda r: r.get_title() == "LISEZ-MOI.txt")), "liste des fichiers à jour")
+    fd.close()
+    yield pump(0.2)
 
 
 @step

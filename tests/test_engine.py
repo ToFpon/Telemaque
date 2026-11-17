@@ -475,6 +475,109 @@ class PartExtTest(Base):
         self.assertNotIn(self.EP, disk_names(self.dst), "fichier décoché : jamais sous son vrai nom")
 
 
+class RenameTest(Base):
+    EP = os.path.join("Série", "Épisode 1.mkv")
+
+    def files_of(self, e, tid):
+        return {f.index: f.path for f in e.files(tid)}
+
+    def test_rename_when_adding(self):
+        e = self.leecher(part_ext=".part")
+        info = eng.read_torrent(self.torrent)
+        paths = {f.index: f.path for f in info.files}
+        ep = next(i for i, p in paths.items() if p == self.EP)
+        new = eng.renamed(paths, ep, "S01E01 - Le départ.mkv")
+        new = eng.renamed(new, root="Ma série")
+        tid = e.add_torrent_file(self.torrent, self.dst, names=new)
+        e.handles[tid].set_download_limit(300_000)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: os.path.join("Ma série", "S01E01 - Le départ.mkv.part")
+                              in disk_names(self.dst)), disk_names(self.dst))
+        self.assertEqual(e.transfer(tid).name, "Ma série")
+        self.assertEqual(e.content_path(tid), os.path.join(self.dst, "Ma série"))
+        e.handles[tid].set_download_limit(0)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete and disk_names(self.dst) == {
+            os.path.join("Ma série", p) for p in ("S01E01 - Le départ.mkv", "Bonus/Making-of.mkv",
+                                                    "lisez-moi.txt")}, 30), disk_names(self.dst))
+        self.assertIn(os.path.join("Ma série", "S01E01 - Le départ.mkv"), self.files_of(e, tid).values())
+        with open(os.path.join(self.content, "Épisode 1.mkv"), "rb") as a, \
+                open(os.path.join(self.dst, "Ma série", "S01E01 - Le départ.mkv"), "rb") as b:
+            self.assertEqual(a.read(), b.read())
+
+    def test_rename_during_download_and_restart(self):
+        state = "state-rename"
+        e = Engine(os.path.join(self.dir, state), listen_port=port(), local_only=True, part_ext=".part")
+        self.engines.append(e)
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        e.handles[tid].set_download_limit(300_000)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).done > 300_000))
+        ep = next(i for i, p in self.files_of(e, tid).items() if p == self.EP)
+        self.assertTrue(e.rename(tid, ep, "Pilote.mkv"))
+        self.assertTrue(e.rename(tid, root="Rangée"))
+        self.assertTrue(until(self.engines, lambda: os.path.join("Rangée", "Pilote.mkv.part") in disk_names(self.dst)),
+                        disk_names(self.dst))
+        self.assertTrue(until(self.engines, lambda: not os.path.exists(os.path.join(self.dst, "Série"))),
+                        "ancien dossier vide retiré")
+        e.pause(tid)
+        e.shutdown()
+        self.engines.remove(e)
+        e2 = Engine(os.path.join(self.dir, state), listen_port=port(), local_only=True, part_ext=".part")
+        self.engines.append(e2)
+        self.assertEqual(self.files_of(e2, tid)[ep], os.path.join("Rangée", "Pilote.mkv"), "noms retenus")
+        self.assertEqual(e2.transfer(tid).name, "Rangée")
+        e2.resume(tid)
+        self.link(e2, tid)
+        self.assertTrue(until(self.engines, lambda: e2.transfer(tid).complete
+                              and os.path.join("Rangée", "Pilote.mkv") in disk_names(self.dst), 30))
+        self.assertEqual(os.path.getsize(os.path.join(self.dst, "Rangée", "Pilote.mkv")), 3_000_000)
+        self.assertFalse(any(n.endswith(".part") for n in disk_names(self.dst)), disk_names(self.dst))
+
+    def test_refusals(self):
+        e = self.leecher(part_ext=".part")
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete))
+        files = {p: i for i, p in self.files_of(e, tid).items()}
+        ep = files[self.EP]
+        for name, code in (("", "empty"), ("..", "dot"), ("a/b", "slash"), ("x" * 300, "long"),
+                           ("lisez-moi.txt", "taken")):
+            with self.assertRaises(eng.RenameError) as cm:
+                e.rename(tid, ep, name)
+            self.assertEqual(cm.exception.code, code, name)
+        with open(os.path.join(self.dst, "Série", "précieux.mkv"), "w") as fh:
+            fh.write("ne pas écraser")
+        with self.assertRaises(eng.RenameError) as cm:
+            e.rename(tid, ep, "précieux.mkv")
+        self.assertEqual(cm.exception.code, "exists")
+        os.makedirs(os.path.join(self.dst, "Autre"))
+        with self.assertRaises(eng.RenameError) as cm:
+            e.rename(tid, root="Autre")
+        self.assertEqual(cm.exception.code, "exists")
+        with open(os.path.join(self.dst, "Série", "précieux.mkv")) as fh:
+            self.assertEqual(fh.read(), "ne pas écraser")
+        self.assertEqual(os.path.getsize(os.path.join(self.dst, self.EP)), 3_000_000, "rien n'a bougé")
+        self.assertFalse(e.rename(tid, ep, "Épisode 1.mkv"), "même nom : rien à faire")
+        # lien magnet sans informations : rien à renommer encore
+        m = self.leecher(state="state-magnet")
+        mt = m.add_magnet(lt.make_magnet_uri(lt.torrent_info(self.torrent)), os.path.join(self.dir, "m"))
+        with self.assertRaises(eng.RenameError) as cm:
+            m.rename(mt, root="x")
+        self.assertEqual(cm.exception.code, "busy")
+
+    def test_single_file(self):
+        single = samples.make_torrent(os.path.join(self.content, "Épisode 1.mkv"), os.path.join(self.dir, "un.torrent"))
+        self.seeder.add_torrent_file(single, self.content)
+        e = self.leecher(part_ext=".part")
+        tid = e.add_torrent_file(single, self.dst)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete))
+        self.assertTrue(e.rename(tid, root="Le film.mkv"))          # le dossier d'un fichier seul = ce fichier
+        self.assertTrue(until(self.engines, lambda: disk_names(self.dst) == {"Le film.mkv"}), disk_names(self.dst))
+        self.assertEqual(e.transfer(tid).name, "Le film.mkv")
+        self.assertEqual(e.content_path(tid), os.path.join(self.dst, "Le film.mkv"))
+
+
 class PersistTest(Base):
     def test_restart(self):
         """Fermé en plein téléchargement puis relancé : la liste revient, la pause aussi, et le
