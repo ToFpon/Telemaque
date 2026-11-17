@@ -1,3 +1,12 @@
+telemaque (1.0.5~noble1) noble; urgency=medium
+
+  * Renommer le dossier ou n'importe quel fichier d'un torrent : dans le
+    dialogue d'ajout, depuis la liste (« Renommer… ») et dans « Fichiers… ».
+    Le torrent reste le même pour le tracker et les autres pairs ; un
+    fichier déjà présent n'est jamais écrasé.
+
+ -- Tof <nourpon@gmail.com>  Tue, 17 Nov 2026 09:20:47 +0000
+
 telemaque (1.0.4~noble1) noble; urgency=medium
 
   * Sélection de plusieurs téléchargements (cases rondes à droite) : pause,

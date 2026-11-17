@@ -73,6 +73,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.5" date="2026-11-17">
+      <description>
+        <ul>
+          <li>Rename the folder or any file of a torrent: in the add dialog, from the list (Rename…) and in Files…; the torrent stays the same for the tracker and the other peers, and an existing file is never overwritten</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.4" date="2026-11-16">
       <description>
         <ul>
