@@ -160,6 +160,15 @@ def _is_pad(fs, i: int) -> bool:
         return False
 
 
+def _complete(st) -> bool:
+    """Fichiers voulus tous là. Aussi d'après is_finished de libtorrent : après une revérification, les fichiers
+    de remplissage (torrents hybrides de libtorrent 2) comptent dans total_wanted mais plus dans
+    total_wanted_done — un torrent fini restait à 97 % (vu après « Supprimer ce fichier »)."""
+    if not st.has_metadata or st.total_wanted <= 0:
+        return False
+    return st.total_wanted_done >= st.total_wanted or bool(getattr(st, "is_finished", False))
+
+
 def read_torrent(path: str) -> TorrentInfo:
     """Lit un fichier .torrent sans l'ajouter."""
     try:
@@ -543,6 +552,41 @@ class Engine:
             self._save_meta()
         self._request_save(tid)
 
+    def delete_file(self, tid: str, index: int) -> bool:
+        """Un fichier d'un torrent de plusieurs fichiers effacé du disque (demande de Tof) : plus téléchargé
+        (priorité 0), effacé (« .part » compris), puis torrent REVÉRIFIÉ — sinon libtorrent croirait toujours
+        l'avoir et l'enverrait aux autres pairs. Les morceaux à cheval sur ses voisins sont retéléchargés (un ou
+        deux). Refusé pour un torrent d'un seul fichier (c'est « Supprimer » du torrent), pendant un déplacement
+        ou une vérification (RenameError « busy »)."""
+        h = self.handles.get(tid)
+        if h is None:
+            return False
+        st = h.status()
+        S = lt.torrent_status.states
+        if (tid in self._moving or not st.has_metadata
+                or st.state in (S.checking_files, S.checking_resume_data)):
+            raise RenameError("busy")
+        ti = h.torrent_file()
+        fs = ti.files()
+        real = [i for i in range(fs.num_files()) if not _is_pad(fs, i)]
+        if index not in real or len(real) < 2:
+            return False
+        # ORDRE IMPORTANT : effacé d'abord, revérifié, PUIS priorité 0. Mis à 0 avant, libtorrent recopiait ses
+        # morceaux dans son fichier caché « .parts » : la revérification les y retrouvait (place pas libérée)
+        base = os.path.join(st.save_path, self._base(tid, index, ti.orig_files()))
+        current = os.path.join(st.save_path, fs.file_path(index))
+        for p in {current, base, base + self.part_ext} if self.part_ext else {current, base}:
+            try:
+                if os.path.isfile(p) and not os.path.islink(p):
+                    os.remove(p)
+            except OSError as e:
+                self.errors.append(f"{p} : {e}")
+        h.force_recheck()
+        self.set_wanted(tid, index, False)
+        self._find_sources(h)
+        self._request_save(tid)
+        return True
+
     @staticmethod
     def _find_sources(h):
         """Redemande des sources au tracker et au DHT tout de suite (sinon : à la prochaine annonce,
@@ -611,7 +655,7 @@ class Engine:
         st = h.status()
         S = lt.torrent_status.states
         paused = bool(st.flags & lt.torrent_flags.paused)
-        complete = st.has_metadata and st.total_wanted > 0 and st.total_wanted_done >= st.total_wanted
+        complete = _complete(st)
         uploaded = st.all_time_upload
         ratio = uploaded / st.total_wanted if st.total_wanted else 0.0
         error = ""
@@ -636,7 +680,8 @@ class Engine:
         left = max(0, st.total_wanted - st.total_wanted_done)
         eta = int(left / rate) if rate > 0 and left else (0 if complete else -1)
         return Transfer(tid=tid, name=self._shown_name(tid, st),
-                        state=state, progress=(st.total_wanted_done / st.total_wanted if st.total_wanted else 0.0),
+                        state=state, progress=(1.0 if complete else st.total_wanted_done / st.total_wanted
+                                               if st.total_wanted else 0.0),
                         size=st.total_wanted, done=st.total_wanted_done, down_rate=rate,
                         up_rate=up, eta=eta, peers=st.num_peers, seeds=st.num_seeds,
                         ratio=ratio, uploaded=uploaded, save_path=st.save_path, error=error,
@@ -701,7 +746,7 @@ class Engine:
         st = h.status()
         if st.flags & lt.torrent_flags.paused or not st.has_metadata:
             return
-        if not (st.total_wanted > 0 and st.total_wanted_done >= st.total_wanted):
+        if not _complete(st):
             return
         if st.state not in (lt.torrent_status.states.finished, lt.torrent_status.states.seeding):
             return                                    # encore en vérification

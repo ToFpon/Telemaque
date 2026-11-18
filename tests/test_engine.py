@@ -578,6 +578,45 @@ class RenameTest(Base):
         self.assertEqual(e.content_path(tid), os.path.join(self.dst, "Le film.mkv"))
 
 
+class DeleteFileTest(Base):
+    def test_delete_one_file(self):
+        e = self.leecher(part_ext=".part")
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete))
+        files = {os.path.basename(f.path): f.index for f in e.files(tid)}
+        self.assertTrue(e.delete_file(tid, files["Épisode 1.mkv"]))
+        self.assertFalse(os.path.exists(os.path.join(self.dst, "Série", "Épisode 1.mkv")), "effacé du disque")
+        ep = files["Épisode 1.mkv"]
+        self.assertTrue(until(self.engines, lambda: next(x.done for x in e.files(tid) if x.index == ep) == 0),
+                        "revérifié : libtorrent sait qu'il ne l'a plus")
+        self.link(e, tid)                       # (ni tracker ni DHT ici : on relie la source à la main)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).state == "seeding" and e.transfer(tid).complete, 30))
+        self.assertFalse(os.path.exists(os.path.join(self.dst, "Série", "Épisode 1.mkv")), "pas retéléchargé")
+        f = {os.path.basename(x.path): x for x in e.files(tid)}
+        self.assertFalse(f["Épisode 1.mkv"].wanted)
+        self.assertEqual(f["Épisode 1.mkv"].done, 0, "libtorrent sait qu'il ne l'a plus")
+        with open(os.path.join(self.content, "Bonus", "Making-of.mkv"), "rb") as a, \
+                open(os.path.join(self.dst, "Série", "Bonus", "Making-of.mkv"), "rb") as b:
+            self.assertEqual(a.read(), b.read(), "voisins intacts")
+        self.assertEqual(e.errors, [])
+        # recoché : il revient
+        e.set_wanted(tid, files["Épisode 1.mkv"], True)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: os.path.exists(os.path.join(self.dst, "Série", "Épisode 1.mkv"))
+                              and e.transfer(tid).complete, 30))
+
+    def test_refusals(self):
+        single = samples.make_torrent(os.path.join(self.content, "Épisode 1.mkv"), os.path.join(self.dir, "un.torrent"))
+        self.seeder.add_torrent_file(single, self.content)
+        e = self.leecher()
+        tid = e.add_torrent_file(single, self.dst)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).complete))
+        self.assertFalse(e.delete_file(tid, 0), "un seul fichier : c'est « Supprimer » du torrent")
+        self.assertTrue(os.path.exists(os.path.join(self.dst, "Épisode 1.mkv")))
+
+
 class PersistTest(Base):
     def test_restart(self):
         """Fermé en plein téléchargement puis relancé : la liste revient, la pause aussi, et le

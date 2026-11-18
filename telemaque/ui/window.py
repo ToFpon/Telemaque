@@ -114,9 +114,11 @@ MAX_FILE_LINES = 200                # au-delà (packs immenses) : « … et N au
 class FileLine(Gtk.Box):
     """Un fichier d'un torrent dépliable : état (fini / en cours / non téléchargé), nom, barre, pourcentage."""
 
-    def __init__(self, f, label: str):
+    def __init__(self, f, label: str, on_toggle=None, on_delete=None):
         super().__init__(spacing=10, css_classes=["file-line"])
         self.path = f.path
+        self.index = f.index
+        self.wanted = f.wanted
         self.icon = Gtk.Image(pixel_size=16)
         self.append(self.icon)
         self.label = Gtk.Label(label=shown(label), xalign=0, hexpand=True, ellipsize=2,
@@ -126,8 +128,18 @@ class FileLine(Gtk.Box):
         self.append(self.bar)
         self.value = Gtk.Label(xalign=1, width_chars=9, css_classes=["dim-label", "caption", "numeric"])
         self.append(self.value)
+        # arrêter / reprendre CE fichier, et le supprimer du disque (demande de Tof)
+        self.toggle = Gtk.Button(valign=Gtk.Align.CENTER, css_classes=["flat", "circular", "file-action"])
+        self.toggle.connect("clicked", lambda *_: on_toggle and on_toggle(self.index, not self.wanted))
+        self.append(self.toggle)
+        self.delete = Gtk.Button(icon_name="user-trash-symbolic", valign=Gtk.Align.CENTER,
+                                 tooltip_text=tr("Supprimer ce fichier…"),
+                                 css_classes=["flat", "circular", "file-action"])
+        self.delete.connect("clicked", lambda *_: on_delete and on_delete(self.index, label))
+        self.append(self.delete)
 
     def update(self, f):
+        self.wanted = f.wanted
         done = f.size and f.done >= f.size
         frac = (f.done / f.size) if f.size else 1.0
         self.bar.set_fraction(min(frac, 1.0))
@@ -147,6 +159,17 @@ class FileLine(Gtk.Box):
                 self.icon.set_tooltip_text(tr("En cours"))
                 self.value.set_label(tr("{0} %").format(int(frac * 100)))
         (self.add_css_class if done else self.remove_css_class)("complete")
+        # fini : rien à arrêter (place gardée, boutons alignés)
+        stoppable = not (done and f.wanted)
+        self.toggle.set_opacity(1 if stoppable else 0)
+        self.toggle.set_can_target(stoppable)
+        self.toggle.set_can_focus(stoppable)
+        if f.wanted:
+            self.toggle.set_icon_name("media-playback-pause-symbolic")
+            self.toggle.set_tooltip_text(tr("Arrêter ce fichier"))
+        else:
+            self.toggle.set_icon_name("media-playback-start-symbolic")
+            self.toggle.set_tooltip_text(tr("Reprendre ce fichier"))
 
 
 class TransferRow(Gtk.ListBoxRow):
@@ -250,7 +273,9 @@ class TransferRow(Gtk.ListBoxRow):
             root = root_of({f.index: f.path for f in files})
             shown_files = sorted(files, key=lambda f: f.path.casefold())
             for f in shown_files[:MAX_FILE_LINES]:
-                line = FileLine(f, _strip_root(f.path, root))
+                line = FileLine(f, _strip_root(f.path, root),
+                                on_toggle=lambda i, w: self.win.set_file_wanted(self.tid, i, w),
+                                on_delete=lambda i, name: self.win.ask_delete_file(self.tid, i, name))
                 self.file_lines[f.index] = line
                 self.files_box.append(line)
             if len(files) > MAX_FILE_LINES:
@@ -740,6 +765,36 @@ class MainWindow(Adw.ApplicationWindow):
             show_in_folder(self, path)
         else:
             toast(self, tr("Les fichiers ne sont plus là"))
+
+    def set_file_wanted(self, tid: str, index: int, wanted: bool):
+        """⏸ / ▶ d'un fichier déplié : le même réglage que la case de « Fichiers… »."""
+        self.app.engine.set_wanted(tid, index, wanted)
+        self.app.refresh()
+        d = self.files_dialogs.get(tid)
+        if d is not None:
+            d.refresh()
+
+    def ask_delete_file(self, tid: str, index: int, name: str):
+        """🗑 d'un fichier déplié : effacé du disque après confirmation, les autres fichiers ne bougent pas."""
+        def done(response):
+            if response != "delete":
+                return
+            try:
+                ok = self.app.engine.delete_file(tid, index)
+            except eng.RenameError:
+                toast(self, tr("Impossible pour l'instant (vérification ou déplacement en cours)"))
+                return
+            if ok:
+                toast(self, tr("« {0} » supprimé").format(os.path.basename(name)))
+            self.app.refresh()
+            d = self.files_dialogs.get(tid)
+            if d is not None:
+                d.refresh()
+        alert(self, tr("Supprimer « {0} » ?").format(os.path.basename(name)),
+              tr("Le fichier est effacé du disque et ne sera plus téléchargé. Les autres fichiers du torrent ne "
+                 "sont pas touchés ; le torrent est revérifié, ce qui peut prendre un moment pour un gros torrent."),
+              responses=(("cancel", tr("Annuler")), ("delete", tr("Supprimer"))), default="cancel",
+              destructive="delete", callback=done)
 
     def ask_rename(self, tid: str):
         """« Renommer… » d'une ligne : le dossier du torrent, ou son fichier s'il est seul (comme qBittorrent).

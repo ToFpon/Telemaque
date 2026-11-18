@@ -291,9 +291,27 @@ def fichiers_deplies(win):
     check([l.label.get_label() for l in lines] == ["Bonus/Making-of.mkv", "lisez-moi.txt", "Épisode 1.mkv"],
           f"chemins sous le dossier, ordre des noms ({[l.label.get_label() for l in lines]})")
     check(all(l.bar.get_fraction() == 1 and "complete" in l.get_css_classes() for l in lines), "finis : barres pleines, ✓")
+    check(all(l.toggle.get_opacity() == 0 for l in lines), "fichiers finis : rien à arrêter (⏸ caché)")
     app.refresh()
     yield pump(0.3)
     check(row.files_revealer.get_reveal_child() and t.tid in win.expanded, "reste déplié à la relecture")
+    # 🗑 « Supprimer ce fichier… » : confirmé, effacé du disque, les autres restent
+    making = next(l for l in lines if l.label.get_label().endswith("Making-of.mkv"))
+    making.delete.emit("clicked")
+    yield pump(0.4)
+    alerts = dialogs(win, Adw.MessageDialog)
+    check(bool(alerts), "suppression d'un fichier : confirmation")
+    if alerts:
+        respond(alerts[0], "delete")
+    mk = os.path.join(DST, "Série", "Bonus", "Making-of.mkv")
+    yield Wait(10, until=lambda: not os.path.exists(mk) and by_name("Série").state == "seeding")
+    check(not os.path.exists(mk), "fichier effacé du disque")
+    check(os.path.getsize(os.path.join(DST, "Série", "Épisode 1.mkv")) == 3_000_000, "les autres fichiers restent")
+    yield Wait(5, until=lambda: any("unwanted" in l.get_css_classes() for l in row.file_lines.values()))
+    mline = next(l for l in row.file_lines.values() if l.label.get_label().endswith("Making-of.mkv"))
+    check("unwanted" in mline.get_css_classes() and mline.toggle.get_opacity() == 1,
+          "ligne : non téléchargé, ▶ pour le reprendre")
+    check(by_name("Série").complete and by_name("Série").progress == 1.0, "le torrent reste à 100 %")
     row.expander.emit("clicked")
     yield pump(0.3)
     check(not row.files_revealer.get_reveal_child(), "replié de nouveau")

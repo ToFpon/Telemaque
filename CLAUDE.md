@@ -130,6 +130,15 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   retenu le temps de la session (`MainWindow.expanded`). Testé : `fichiers_deplies` d'ui_smoke ; capture
   `tools/screenshot.py --expand`. PIÈGE de test : ne pas lancer deux ui_smoke en même temps (ports fixes 47811 /
   47812 : le premier téléchargement n'aboutit plus).
+  Sur chaque fichier déplié (demande de Tof) : ⏸ / ▶ « Arrêter / Reprendre ce fichier » (= la case de
+  « Fichiers… », `MainWindow.set_file_wanted` ; caché sur un fichier fini) et 🗑 « Supprimer ce fichier… »
+  (confirmation, `Engine.delete_file`). PIÈGE libtorrent : mettre un fichier à la priorité 0 RECOPIE ses morceaux
+  dans le fichier caché « .<empreinte>.parts » ; effacer puis revérifier les y retrouvait (place pas libérée,
+  avancement resté à 100 %). Ordre : effacer (« .part » compris), `force_recheck`, PUIS priorité 0. Les morceaux à
+  cheval sur les voisins sont retéléchargés (un ou deux). Refusé pour un torrent d'un seul fichier (« Supprimer »
+  du torrent) et pendant une vérification / un déplacement. Après une revérification, les fichiers de
+  remplissage (torrents hybrides) comptaient dans total_wanted mais plus dans total_wanted_done : fini resté à 97 %
+  → `_complete` regarde aussi `is_finished`. Testé : `DeleteFileTest`, `fichiers_deplies` d'ui_smoke.
 - PIÈGE libtorrent : une alerte ne vit que jusqu'au `pop_alerts()` suivant. Un rappel (`on_moved` → la fenêtre
   → `refresh()` → `poll()`) qui relançait la lecture des alertes PENDANT la boucle libérait les suivantes →
   segfault (`polymorphic_id_generator<alert>`, vu sous gdb). `_handle_alerts` refuse la réentrée (`_in_alerts`) ;

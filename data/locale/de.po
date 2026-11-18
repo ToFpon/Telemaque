@@ -16,11 +16,11 @@ msgstr "Version anzeigen"
 msgid "Téléchargement terminé"
 msgstr "Download abgeschlossen"
 
-#: telemaque/app.py:253 telemaque/ui/window.py:185
+#: telemaque/app.py:253 telemaque/ui/window.py:208
 msgid "Ouvrir"
 msgstr "Öffnen"
 
-#: telemaque/app.py:254 telemaque/ui/window.py:186
+#: telemaque/app.py:254 telemaque/ui/window.py:209
 msgid "Afficher dans le dossier"
 msgstr "Im Ordner anzeigen"
 
@@ -146,7 +146,7 @@ msgstr "{0} min"
 msgid "{0} h {1:02d}"
 msgstr "{0} h {1:02d}"
 
-#: telemaque/tray.py:98 telemaque/ui/window.py:588
+#: telemaque/tray.py:98 telemaque/ui/window.py:613
 msgid "Rien en cours"
 msgstr "Nichts läuft"
 
@@ -173,7 +173,7 @@ msgid "Tout reprendre"
 msgstr "Alle fortsetzen"
 
 #: telemaque/tray.py:204 telemaque/ui/preferences.py:91
-#: telemaque/ui/window.py:334 telemaque/ui/window.py:837
+#: telemaque/ui/window.py:359 telemaque/ui/window.py:892
 msgid "Quitter"
 msgstr "Beenden"
 
@@ -182,7 +182,7 @@ msgid "Parcourir…"
 msgstr "Durchsuchen…"
 
 #: telemaque/ui/common.py:440 telemaque/ui/common.py:106
-#: telemaque/ui/dialogs.py:257 telemaque/ui/window.py:803
+#: telemaque/ui/dialogs.py:257 telemaque/ui/window.py:796
 msgid "Annuler"
 msgstr "Abbrechen"
 
@@ -215,7 +215,7 @@ msgid "Enregistrer dans"
 msgstr "Speichern in"
 
 #: telemaque/ui/dialogs.py:323 telemaque/ui/dialogs.py:188
-#: telemaque/ui/window.py:754
+#: telemaque/ui/window.py:809
 msgid "Renommer le fichier"
 msgstr "Datei umbenennen"
 
@@ -259,7 +259,7 @@ msgstr ""
 msgid "Ajouter en pause"
 msgstr "Pausiert hinzufügen"
 
-#: telemaque/ui/dialogs.py:188 telemaque/ui/window.py:754
+#: telemaque/ui/dialogs.py:188 telemaque/ui/window.py:809
 msgid "Renommer le dossier"
 msgstr "Ordner umbenennen"
 
@@ -271,7 +271,7 @@ msgstr "Dieser Ordner kann nicht verwendet werden"
 msgid "Vous n'avez pas le droit d'y écrire."
 msgstr "Sie haben keine Schreibrechte dort."
 
-#: telemaque/ui/dialogs.py:253 telemaque/ui/window.py:325
+#: telemaque/ui/dialogs.py:253 telemaque/ui/window.py:350
 msgid "Ajouter un lien magnet"
 msgstr "Magnet-Link hinzufügen"
 
@@ -304,7 +304,7 @@ msgstr "Alle"
 msgid "Rien"
 msgstr "Keine"
 
-#: telemaque/ui/dialogs.py:76 telemaque/ui/window.py:190
+#: telemaque/ui/dialogs.py:76 telemaque/ui/window.py:213
 msgid "Renommer…"
 msgstr "Umbenennen …"
 
@@ -342,7 +342,7 @@ msgstr "Verhältnis"
 msgid "Style"
 msgstr "Stil"
 
-#: telemaque/ui/preferences.py:73 telemaque/ui/window.py:330
+#: telemaque/ui/preferences.py:73 telemaque/ui/window.py:355
 msgid "Préférences"
 msgstr "Einstellungen"
 
@@ -474,7 +474,7 @@ msgstr ""
 msgid "Demander"
 msgstr "Fragen"
 
-#: telemaque/ui/preferences.py:91 telemaque/ui/window.py:838
+#: telemaque/ui/preferences.py:91 telemaque/ui/window.py:893
 msgid "Continuer en arrière-plan"
 msgstr "Im Hintergrund weiterlaufen"
 
@@ -498,7 +498,7 @@ msgstr "Dateien werden verschoben …"
 msgid "Tous"
 msgstr "Alle"
 
-#: telemaque/ui/window.py:54 telemaque/ui/window.py:147
+#: telemaque/ui/window.py:54 telemaque/ui/window.py:159
 msgid "En cours"
 msgstr "Laufend"
 
@@ -514,7 +514,7 @@ msgstr "DHT: aus"
 msgid "DHT : connexion…"
 msgstr "DHT: verbindet…"
 
-#: telemaque/ui/window.py:365
+#: telemaque/ui/window.py:390
 msgid ""
 "Adresse publique : celle que voient les autres (celle du VPN, s'il y en a "
 "un). « Joignable » : des connexions entrantes arrivent, le port est ouvert."
@@ -544,40 +544,50 @@ msgid_plural "DHT : actif, {0} nœuds"
 msgstr[0] "DHT: aktiv, {0} Knoten"
 msgstr[1] "DHT: aktiv, {0} Knoten"
 
-#: telemaque/ui/window.py:189
+#: telemaque/ui/window.py:212
 msgid "Fichiers…"
 msgstr "Dateien…"
 
-#: telemaque/ui/window.py:191 telemaque/ui/window.py:634
+#: telemaque/ui/window.py:214 telemaque/ui/window.py:659
 msgid "Déplacer…"
 msgstr "Verschieben …"
 
-#: telemaque/ui/window.py:194 telemaque/ui/window.py:633
+#: telemaque/ui/window.py:217 telemaque/ui/window.py:658
 msgid "Supprimer…"
 msgstr "Entfernen…"
 
-#: telemaque/ui/window.py:331
+#: telemaque/ui/window.py:356
 msgid "À propos de Télémaque"
 msgstr "Info zu Télémaque"
 
-#: telemaque/ui/window.py:493
+#: telemaque/ui/window.py:518
 msgid "Ouvrir des fichiers torrent"
 msgstr "Torrent-Dateien öffnen"
 
-#: telemaque/ui/window.py:702
+#: telemaque/ui/window.py:727
 msgid "Déplacer vers"
 msgstr "Verschieben nach"
 
-#: telemaque/ui/window.py:802
+#: telemaque/ui/window.py:794
+msgid ""
+"Le fichier est effacé du disque et ne sera plus téléchargé. Les autres "
+"fichiers du torrent ne sont pas touchés ; le torrent est revérifié, ce qui "
+"peut prendre un moment pour un gros torrent."
+msgstr ""
+"Die Datei wird von der Festplatte gelöscht und nicht mehr heruntergeladen. "
+"Die anderen Dateien des Torrents bleiben unberührt; der Torrent wird neu "
+"geprüft, was bei einem großen Torrent einen Moment dauern kann."
+
+#: telemaque/ui/window.py:857
 msgid "« Retirer de la liste » garde les fichiers déjà téléchargés."
 msgstr ""
 "„Aus der Liste entfernen“ behält die bereits heruntergeladenen Dateien."
 
-#: telemaque/ui/window.py:834
+#: telemaque/ui/window.py:889
 msgid "Continuer en arrière-plan ?"
 msgstr "Im Hintergrund weiterlaufen?"
 
-#: telemaque/ui/window.py:835
+#: telemaque/ui/window.py:890
 msgid ""
 "Télémaque peut continuer à télécharger et à partager sans fenêtre. Relancez-"
 "le pour la retrouver."
@@ -626,18 +636,30 @@ msgid "pas encore connue"
 msgstr "noch unbekannt"
 
 #: telemaque/ui/window.py:136
+msgid "Supprimer ce fichier…"
+msgstr "Diese Datei löschen …"
+
+#: telemaque/ui/window.py:148
 msgid "Non téléchargé (décoché dans « Fichiers… »)"
 msgstr "Nicht heruntergeladen (in „Dateien …“ abgewählt)"
 
-#: telemaque/ui/window.py:137
+#: telemaque/ui/window.py:149
 msgid "décoché"
 msgstr "abgewählt"
 
-#: telemaque/ui/window.py:163 telemaque/ui/window.py:236
+#: telemaque/ui/window.py:169
+msgid "Arrêter ce fichier"
+msgstr "Diese Datei anhalten"
+
+#: telemaque/ui/window.py:172
+msgid "Reprendre ce fichier"
+msgstr "Diese Datei fortsetzen"
+
+#: telemaque/ui/window.py:186 telemaque/ui/window.py:259
 msgid "Afficher les fichiers"
 msgstr "Dateien anzeigen"
 
-#: telemaque/ui/window.py:171
+#: telemaque/ui/window.py:194
 msgid ""
 "Sources : pairs qui ont tout le fichier ; pairs : les autres. Ceux auxquels "
 "Télémaque est relié en ce moment."
@@ -645,39 +667,39 @@ msgstr ""
 "Seeds: Peers, die die ganze Datei haben; Peers: die anderen. Die, mit denen "
 "Télémaque gerade verbunden ist."
 
-#: telemaque/ui/window.py:198
+#: telemaque/ui/window.py:221
 msgid "Plus d'actions"
 msgstr "Weitere Aktionen"
 
-#: telemaque/ui/window.py:202
+#: telemaque/ui/window.py:225
 msgid "Sélectionner"
 msgstr "Auswählen"
 
-#: telemaque/ui/window.py:236
+#: telemaque/ui/window.py:259
 msgid "Masquer les fichiers"
 msgstr "Dateien ausblenden"
 
-#: telemaque/ui/window.py:282 telemaque/ui/window.py:635
+#: telemaque/ui/window.py:307 telemaque/ui/window.py:660
 msgid "Mettre en pause"
 msgstr "Pausieren"
 
-#: telemaque/ui/window.py:320
+#: telemaque/ui/window.py:345
 msgid "Barre latérale (F9)"
 msgstr "Seitenleiste (F9)"
 
-#: telemaque/ui/window.py:322
+#: telemaque/ui/window.py:347
 msgid "Ouvrir un fichier torrent (Ctrl+O)"
 msgstr "Torrent-Datei öffnen (Strg+O)"
 
-#: telemaque/ui/window.py:337
+#: telemaque/ui/window.py:362
 msgid "Menu principal"
 msgstr "Hauptmenü"
 
-#: telemaque/ui/window.py:342
+#: telemaque/ui/window.py:367
 msgid "Aucun téléchargement"
 msgstr "Keine Downloads"
 
-#: telemaque/ui/window.py:343
+#: telemaque/ui/window.py:368
 msgid ""
 "Ouvrez un fichier .torrent ou collez un lien magnet (Ctrl+V). Vous pouvez "
 "aussi les glisser ici."
@@ -685,15 +707,15 @@ msgstr ""
 "Öffnen Sie eine .torrent-Datei oder fügen Sie einen Magnet-Link ein "
 "(Strg+V). Sie können sie auch hierher ziehen."
 
-#: telemaque/ui/window.py:346
+#: telemaque/ui/window.py:371
 msgid "Ouvrir un fichier torrent…"
 msgstr "Torrent-Datei öffnen…"
 
-#: telemaque/ui/window.py:348
+#: telemaque/ui/window.py:373
 msgid "Ajouter un lien magnet…"
 msgstr "Magnet-Link hinzufügen…"
 
-#: telemaque/ui/window.py:371
+#: telemaque/ui/window.py:396
 msgid ""
 "Le DHT trouve des sources sans tracker ; indispensable aux liens magnet. "
 "Préférences → Réseau."
@@ -701,23 +723,23 @@ msgstr ""
 "DHT findet Quellen ohne Tracker; für Magnet-Links unverzichtbar. "
 "Einstellungen → Netzwerk."
 
-#: telemaque/ui/window.py:627
+#: telemaque/ui/window.py:652
 msgid "Tout désélectionner (Échap)"
 msgstr "Nichts auswählen (Esc)"
 
-#: telemaque/ui/window.py:629
+#: telemaque/ui/window.py:654
 msgid "Tout sélectionner (Ctrl+A)"
 msgstr "Alles auswählen (Strg+A)"
 
-#: telemaque/ui/window.py:636 telemaque/ui/window.py:279
+#: telemaque/ui/window.py:661 telemaque/ui/window.py:304
 msgid "Reprendre"
 msgstr "Fortsetzen"
 
-#: telemaque/ui/window.py:735 telemaque/ui/window.py:742
+#: telemaque/ui/window.py:760 telemaque/ui/window.py:767
 msgid "Les fichiers ne sont plus là"
 msgstr "Die Dateien sind nicht mehr da"
 
-#: telemaque/ui/window.py:823
+#: telemaque/ui/window.py:878
 msgid "Ne plus demander"
 msgstr "Nicht mehr fragen"
 
@@ -757,37 +779,37 @@ msgstr "IPv4: {0}"
 msgid "IPv6 : {0}"
 msgstr "IPv6: {0}"
 
-#: telemaque/ui/window.py:143
+#: telemaque/ui/window.py:155
 msgid "Fini"
 msgstr "Fertig"
 
-#: telemaque/ui/window.py:279
+#: telemaque/ui/window.py:304
 msgid "Partager de nouveau"
 msgstr "Erneut teilen"
 
-#: telemaque/ui/window.py:506
+#: telemaque/ui/window.py:531
 msgid "Ce fichier n'est pas un torrent valide"
 msgstr "Diese Datei ist kein gültiger Torrent"
 
-#: telemaque/ui/window.py:518
+#: telemaque/ui/window.py:543
 msgid "Ce lien magnet n'est pas valide"
 msgstr "Dieser Magnet-Link ist ungültig"
 
-#: telemaque/ui/window.py:537
+#: telemaque/ui/window.py:562
 msgid "Déjà dans la liste"
 msgstr "Bereits in der Liste"
 
-#: telemaque/ui/window.py:539
+#: telemaque/ui/window.py:564
 msgid "Impossible d'ajouter ce torrent"
 msgstr "Dieser Torrent kann nicht hinzugefügt werden"
 
-#: telemaque/ui/window.py:672
+#: telemaque/ui/window.py:697
 msgid "{0} sélectionné"
 msgid_plural "{0} sélectionnés"
 msgstr[0] "{0} ausgewählt"
 msgstr[1] "{0} ausgewählt"
 
-#: telemaque/ui/window.py:716
+#: telemaque/ui/window.py:741
 msgid ""
 "Les fichiers sont restés où ils étaient. Un fichier du même nom dans le "
 "dossier choisi n'est jamais écrasé."
@@ -795,71 +817,83 @@ msgstr ""
 "Die Dateien sind geblieben, wo sie waren. Eine gleichnamige Datei im "
 "gewählten Ordner wird nie überschrieben."
 
-#: telemaque/ui/window.py:798
+#: telemaque/ui/window.py:793 telemaque/ui/window.py:853
 msgid "Supprimer « {0} » ?"
 msgstr "„{0}“ entfernen?"
 
-#: telemaque/ui/window.py:799
+#: telemaque/ui/window.py:854
 msgid "Supprimer {0} téléchargement ?"
 msgid_plural "Supprimer {0} téléchargements ?"
 msgstr[0] "{0} Download entfernen?"
 msgstr[1] "{0} Downloads entfernen?"
 
-#: telemaque/ui/window.py:488
+#: telemaque/ui/window.py:513
 msgid "Pas de lien magnet dans le presse-papiers"
 msgstr "Kein Magnet-Link in der Zwischenablage"
 
-#: telemaque/ui/window.py:496
+#: telemaque/ui/window.py:521
 msgid "Fichiers torrent"
 msgstr "Torrent-Dateien"
 
-#: telemaque/ui/window.py:496
+#: telemaque/ui/window.py:521
 msgid "Tous les fichiers"
 msgstr "Alle Dateien"
 
-#: telemaque/ui/window.py:509 telemaque/ui/window.py:522
+#: telemaque/ui/window.py:534 telemaque/ui/window.py:547
 msgid "« {0} » est déjà dans la liste"
 msgstr "„{0}“ ist bereits in der Liste"
 
-#: telemaque/ui/window.py:567
+#: telemaque/ui/window.py:592
 msgid "↓ {0} · ↑ {1}"
 msgstr "↓ {0} · ↑ {1}"
 
-#: telemaque/ui/window.py:707
+#: telemaque/ui/window.py:732
 msgid "Déplacement de {0} téléchargement…"
 msgid_plural "Déplacement de {0} téléchargements…"
 msgstr[0] "{0} Download wird verschoben …"
 msgstr[1] "{0} Downloads werden verschoben …"
 
-#: telemaque/ui/window.py:715
+#: telemaque/ui/window.py:740
 msgid "Impossible de déplacer « {0} »"
 msgstr "„{0}“ kann nicht verschoben werden"
 
-#: telemaque/ui/window.py:803
+#: telemaque/ui/window.py:785
+msgid "Impossible pour l'instant (vérification ou déplacement en cours)"
+msgstr "Im Moment nicht möglich (Prüfung oder Verschieben läuft)"
+
+#: telemaque/ui/window.py:796
+msgid "Supprimer"
+msgstr "Löschen"
+
+#: telemaque/ui/window.py:858
 msgid "Retirer de la liste"
 msgstr "Aus der Liste entfernen"
 
-#: telemaque/ui/window.py:804
+#: telemaque/ui/window.py:859
 msgid "Supprimer aussi les fichiers"
 msgstr "Dateien auch löschen"
 
-#: telemaque/ui/window.py:148
+#: telemaque/ui/window.py:160
 msgid "{0} %"
 msgstr "{0} %"
 
-#: telemaque/ui/window.py:588
+#: telemaque/ui/window.py:613
 msgid "Tous les téléchargements sont terminés."
 msgstr "Alle Downloads sind fertig."
 
-#: telemaque/ui/window.py:589
+#: telemaque/ui/window.py:614
 msgid "Aucun téléchargement terminé"
 msgstr "Keine fertigen Downloads"
 
-#: telemaque/ui/window.py:589
+#: telemaque/ui/window.py:614
 msgid "Ils apparaîtront ici une fois complets."
 msgstr "Sie erscheinen hier, sobald sie vollständig sind."
 
-#: telemaque/ui/window.py:258
+#: telemaque/ui/window.py:788
+msgid "« {0} » supprimé"
+msgstr "„{0}“ gelöscht"
+
+#: telemaque/ui/window.py:283
 msgid "… et {0} autre fichier (voir « Fichiers… »)"
 msgid_plural "… et {0} autres fichiers (voir « Fichiers… »)"
 msgstr[0] "… und {0} weitere Datei (siehe „Dateien …“)"
