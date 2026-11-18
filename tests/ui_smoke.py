@@ -276,6 +276,43 @@ def fichiers_en_cours(win):
 
 
 @step
+def fichiers_deplies(win):
+    """Torrent de plusieurs fichiers (une saison) : la flèche déplie ses fichiers sous la ligne, chacun avec sa barre
+    (demande de Tof)."""
+    from telemaque.ui.window import FileLine
+    t = by_name("Série")
+    row = win.rows[t.tid]
+    check(row.expander.get_sensitive() and row.expander.get_opacity() == 1, "plusieurs fichiers : flèche active")
+    check(not row.files_revealer.get_reveal_child(), "replié par défaut")
+    row.expander.emit("clicked")
+    yield pump(0.5)
+    lines = [w for w in _all(row.files_box) if isinstance(w, FileLine)]
+    check(row.files_revealer.get_reveal_child() and len(lines) == 3, f"déplié : trois fichiers ({len(lines)})")
+    check([l.label.get_label() for l in lines] == ["Bonus/Making-of.mkv", "lisez-moi.txt", "Épisode 1.mkv"],
+          f"chemins sous le dossier, ordre des noms ({[l.label.get_label() for l in lines]})")
+    check(all(l.bar.get_fraction() == 1 and "complete" in l.get_css_classes() for l in lines), "finis : barres pleines, ✓")
+    app.refresh()
+    yield pump(0.3)
+    check(row.files_revealer.get_reveal_child() and t.tid in win.expanded, "reste déplié à la relecture")
+    row.expander.emit("clicked")
+    yield pump(0.3)
+    check(not row.files_revealer.get_reveal_child(), "replié de nouveau")
+
+
+def _all(widget):
+    out = []
+
+    def walk(w):
+        out.append(w)
+        c = w.get_first_child()
+        while c is not None:
+            walk(c)
+            c = c.get_next_sibling()
+    walk(widget)
+    return out
+
+
+@step
 def pause_reprise(win):
     t = by_name("Série")
     row = win.rows[t.tid]

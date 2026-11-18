@@ -122,6 +122,14 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   `common.RenameDialog` (nom sélectionné sans l'extension comme Nautilus, erreur sous le champ, la fenêtre reste) ;
   crayon du titre et de chaque fichier dans le dialogue d'ajout, « Renommer… » du menu de la ligne (dossier ou
   fichier seul), crayon de chaque fichier dans « Fichiers… ». Testé : `RenameTest`, `renommer` d'ui_smoke.
+- Fichiers dépliés sous la ligne (demande de Tof : une saison complète, voir chaque épisode) : flèche à gauche
+  du nom (`TransferRow.expander`, place gardée même sans fichiers à déplier : noms alignés), active si
+  `Transfer.file_count` > 1 (`Engine._file_count`, retenu). Dépliée : `FileLine` par fichier (icône fini / en cours
+  / décoché, chemin sous le dossier du torrent, petite barre, « 45 % » ou la taille une fois fini), relue à chaque
+  relecture SEULEMENT si dépliée (file_progress coûte), 200 lignes au plus (puis « … et N autres »). État déplié
+  retenu le temps de la session (`MainWindow.expanded`). Testé : `fichiers_deplies` d'ui_smoke ; capture
+  `tools/screenshot.py --expand`. PIÈGE de test : ne pas lancer deux ui_smoke en même temps (ports fixes 47811 /
+  47812 : le premier téléchargement n'aboutit plus).
 - PIÈGE libtorrent : une alerte ne vit que jusqu'au `pop_alerts()` suivant. Un rappel (`on_moved` → la fenêtre
   → `refresh()` → `poll()`) qui relançait la lecture des alertes PENDANT la boucle libérait les suivantes →
   segfault (`polymorphic_id_generator<alert>`, vu sous gdb). `_handle_alerts` refuse la réentrée (`_in_alerts`) ;

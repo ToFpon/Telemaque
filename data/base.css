@@ -5,3 +5,10 @@ row.error .transfer-progress progress { background-color: @error_color; }
 row.complete .transfer-progress progress { background-color: @success_color; }
 .telemaque-status { padding: 4px 12px; border-top: 1px solid alpha(currentColor, 0.1); }
 row.selected-transfer { background-color: alpha(@accent_bg_color, 0.12); }
+
+/* Fichiers d'un téléchargement dépliés sous sa ligne */
+.file-progress trough, .file-progress progress { min-height: 4px; border-radius: 2px; }
+.file-line.complete .file-progress progress { background-color: @success_color; }
+.file-line.complete image { color: @success_color; }
+.file-line.unwanted { opacity: 0.5; }
+row.paused .file-progress progress { opacity: 0.45; }

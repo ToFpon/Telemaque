@@ -133,6 +133,7 @@ class Transfer:
     error: str = ""
     has_metadata: bool = True
     complete: bool = False        # fichiers voulus tous là
+    file_count: int = 0           # vrais fichiers du torrent (0 tant que les informations manquent)
 
     @property
     def active(self) -> bool:
@@ -223,6 +224,7 @@ class Engine:
         self.on_moved: Optional[Callable[[str, bool, str], None]] = None
         self._moving: set[str] = set()
         self._in_alerts = False
+        self._counts: dict[str, int] = {}       # nombre de fichiers par téléchargement (_file_count)
         self._cleanup: set[str] = set()         # anciens dossiers de torrents renommés, à retirer une fois vides
         self.errors: list[str] = []
         self.dht_enabled = bool(pack["enable_dht"])
@@ -582,6 +584,19 @@ class Engine:
         h = self.handles.get(tid)
         return self._snapshot(tid, h) if h is not None else None
 
+    def _file_count(self, tid: str, h, st) -> int:
+        """Nombre de vrais fichiers (sans les fichiers de remplissage de libtorrent), retenu : il ne change pas."""
+        if not st.has_metadata:
+            return 0
+        n = self._counts.get(tid)
+        if n is None:
+            ti = h.torrent_file()
+            if ti is None:
+                return 0
+            fs = ti.files()
+            n = self._counts[tid] = sum(1 for i in range(fs.num_files()) if not _is_pad(fs, i))
+        return n
+
     def _shown_name(self, tid: str, st) -> str:
         """Nom dans la liste : celui du torrent, ou le nom choisi pour son dossier / son fichier."""
         m = self.meta.get(tid, {})
@@ -625,7 +640,7 @@ class Engine:
                         size=st.total_wanted, done=st.total_wanted_done, down_rate=rate,
                         up_rate=up, eta=eta, peers=st.num_peers, seeds=st.num_seeds,
                         ratio=ratio, uploaded=uploaded, save_path=st.save_path, error=error,
-                        has_metadata=st.has_metadata, complete=complete)
+                        has_metadata=st.has_metadata, complete=complete, file_count=self._file_count(tid, h, st))
 
     # -- boucle --------------------------------------------------------------------------------
     def note_external_ip(self, ip: str):

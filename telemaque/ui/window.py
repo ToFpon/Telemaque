@@ -108,6 +108,47 @@ def _ratio(r: float) -> str:
     return decimal(r, 2 if r < 10 else 1)
 
 
+MAX_FILE_LINES = 200                # au-delà (packs immenses) : « … et N autres fichiers »
+
+
+class FileLine(Gtk.Box):
+    """Un fichier d'un torrent dépliable : état (fini / en cours / non téléchargé), nom, barre, pourcentage."""
+
+    def __init__(self, f, label: str):
+        super().__init__(spacing=10, css_classes=["file-line"])
+        self.path = f.path
+        self.icon = Gtk.Image(pixel_size=16)
+        self.append(self.icon)
+        self.label = Gtk.Label(label=shown(label), xalign=0, hexpand=True, ellipsize=2,
+                               tooltip_text=shown(label), css_classes=["caption"])
+        self.append(self.label)
+        self.bar = Gtk.ProgressBar(valign=Gtk.Align.CENTER, width_request=110, css_classes=["file-progress"])
+        self.append(self.bar)
+        self.value = Gtk.Label(xalign=1, width_chars=9, css_classes=["dim-label", "caption", "numeric"])
+        self.append(self.value)
+
+    def update(self, f):
+        done = f.size and f.done >= f.size
+        frac = (f.done / f.size) if f.size else 1.0
+        self.bar.set_fraction(min(frac, 1.0))
+        if not f.wanted and not done:
+            self.icon.set_from_icon_name("action-unavailable-symbolic")
+            self.icon.set_tooltip_text(tr("Non téléchargé (décoché dans « Fichiers… »)"))
+            self.value.set_label(tr("décoché"))
+            self.add_css_class("unwanted")
+        else:
+            self.remove_css_class("unwanted")
+            if done:
+                self.icon.set_from_icon_name("object-select-symbolic")
+                self.icon.set_tooltip_text(tr("Fini"))
+                self.value.set_label(fmt.size(f.size))
+            else:
+                self.icon.set_from_icon_name("folder-download-symbolic")
+                self.icon.set_tooltip_text(tr("En cours"))
+                self.value.set_label(tr("{0} %").format(int(frac * 100)))
+        (self.add_css_class if done else self.remove_css_class)("complete")
+
+
 class TransferRow(Gtk.ListBoxRow):
     def __init__(self, win: "MainWindow", t):
         super().__init__(activatable=False, selectable=False)
@@ -115,6 +156,13 @@ class TransferRow(Gtk.ListBoxRow):
         self.tid = t.tid
         self.transfer = t
         box = Gtk.Box(spacing=12, margin_top=10, margin_bottom=10, margin_start=12, margin_end=8)
+        # torrent de plusieurs fichiers (une saison…) : flèche qui déplie ses fichiers, chacun avec sa barre
+        # (demande de Tof : voir où en est chaque épisode, pas seulement l'ensemble)
+        self.expander = Gtk.Button(icon_name="pan-end-symbolic", valign=Gtk.Align.CENTER,
+                                   css_classes=["flat", "circular", "files-expander"],
+                                   tooltip_text=tr("Afficher les fichiers"))
+        self.expander.connect("clicked", lambda *_: self.set_expanded(not self.expanded))
+        box.append(self.expander)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True, valign=Gtk.Align.CENTER)
         self.name = Gtk.Label(xalign=0, ellipsize=2, css_classes=["heading"])        # … au milieu
         self.bar = Gtk.ProgressBar(css_classes=["transfer-progress"])
@@ -167,8 +215,54 @@ class TransferRow(Gtk.ListBoxRow):
             group.add_action(a)
             self.actions[name] = a
         self.insert_action_group("row", group)
-        self.set_child(box)
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        outer.append(box)
+        self.files_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, margin_start=56, margin_end=60,
+                                 margin_bottom=10, css_classes=["transfer-files"])
+        self.files_revealer = Gtk.Revealer(child=self.files_box, reveal_child=False,
+                                           transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+        outer.append(self.files_revealer)
+        self.set_child(outer)
+        self.expanded = False
+        self.file_lines: dict = {}             # indice → FileLine
         self.update(t)
+        if t.tid in win.expanded:
+            self.set_expanded(True)
+
+    def set_expanded(self, on: bool):
+        self.expanded = on
+        (self.win.expanded.add if on else self.win.expanded.discard)(self.tid)
+        self.expander.set_icon_name("pan-down-symbolic" if on else "pan-end-symbolic")
+        self.expander.set_tooltip_text(tr("Masquer les fichiers") if on else tr("Afficher les fichiers"))
+        if on:
+            self.refresh_files()
+        self.files_revealer.set_reveal_child(on)
+
+    def refresh_files(self):
+        """Fichiers et leur avancement (seulement quand la ligne est dépliée : file_progress coûte)."""
+        from .dialogs import _strip_root, root_of
+        files = self.win.app.engine.files(self.tid)
+        if [f.index for f in files] != sorted(self.file_lines) or any(
+                self.file_lines[f.index].path != f.path for f in files):
+            while (c := self.files_box.get_first_child()) is not None:
+                self.files_box.remove(c)
+            self.file_lines = {}
+            root = root_of({f.index: f.path for f in files})
+            shown_files = sorted(files, key=lambda f: f.path.casefold())
+            for f in shown_files[:MAX_FILE_LINES]:
+                line = FileLine(f, _strip_root(f.path, root))
+                self.file_lines[f.index] = line
+                self.files_box.append(line)
+            if len(files) > MAX_FILE_LINES:
+                more = Gtk.Label(xalign=0, css_classes=["dim-label", "caption"],
+                                 label=ntr("… et {0} autre fichier (voir « Fichiers… »)",
+                                           "… et {0} autres fichiers (voir « Fichiers… »)",
+                                           len(files) - MAX_FILE_LINES).format(len(files) - MAX_FILE_LINES))
+                self.files_box.append(more)
+        for f in files:
+            line = self.file_lines.get(f.index)
+            if line is not None:
+                line.update(f)
 
     def update(self, t):
         self.transfer = t
@@ -193,6 +287,14 @@ class TransferRow(Gtk.ListBoxRow):
         self.actions["show"].set_enabled(exists)
         self.actions["files"].set_enabled(t.has_metadata)
         self.actions["rename"].set_enabled(t.has_metadata and t.state not in ("moving", "checking"))
+        # place gardée même sans fichiers à déplier : les noms de toutes les lignes restent alignés
+        many = t.file_count > 1
+        self.expander.set_opacity(1 if many else 0)
+        self.expander.set_sensitive(many)
+        self.expander.set_can_target(many)
+        self.expander.set_can_focus(many)
+        if self.expanded and t.file_count > 1:
+            self.refresh_files()
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -206,6 +308,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.rows: dict[str, TransferRow] = {}
         self.files_dialogs: dict = {}
         self.selected: set[str] = set()
+        self.expanded: set[str] = set()          # téléchargements dépliés (leurs fichiers), le temps de la session
 
         self.filter = settings["filter"] if settings["filter"] in [f[0] for f in FILTERS] else "all"
         self.toast_overlay = Adw.ToastOverlay()

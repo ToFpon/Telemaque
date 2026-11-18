@@ -13,6 +13,7 @@ terminé, en pause, en partage).
   --prefs=PAGE      Préférences (general, network, features)
   --close           question « Continuer en arrière-plan ? »
   --select          deux téléchargements cochés (barre d'actions de la sélection)
+  --expand          fichiers du premier téléchargement dépliés sous sa ligne
   --delay=MS        attente avant la capture (5000)
 """
 
@@ -125,6 +126,9 @@ def later(win):
     if args.get("select"):                          # deux téléchargements cochés : barre de la sélection
         tids = [eng.read_torrent(path).tid for path, _s in torrents[:2]]
         GLib.timeout_add(1200, lambda: ([win.set_selected(t, True) for t in tids], False)[1])
+    if args.get("expand"):
+        tid = eng.read_torrent(torrents[0][0]).tid
+        GLib.timeout_add(1200, lambda: (win.rows[tid].set_expanded(True), False)[1])
     if args.get("files"):
         tid = eng.read_torrent(torrents[0][0]).tid
         GLib.timeout_add(1500, lambda: (win.show_files(tid), False)[1])
