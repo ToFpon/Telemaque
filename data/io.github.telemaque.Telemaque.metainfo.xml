@@ -73,6 +73,15 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.6" date="2026-11-18">
+      <description>
+        <ul>
+          <li>A small arrow unfolds the files of a torrent under its line, each with its own progress bar</li>
+          <li>Each unfolded file can be stopped, resumed or deleted from the disk; the other files are not touched</li>
+          <li>A finished torrent no longer stays at 97% after being checked again</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.5" date="2026-11-17">
       <description>
         <ul>

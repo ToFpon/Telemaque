@@ -1,3 +1,13 @@
+telemaque (1.0.6~noble1) noble; urgency=medium
+
+  * Une petite flèche déplie les fichiers d'un torrent sous sa ligne,
+    chacun avec sa propre barre de progression.
+  * Chaque fichier déplié peut être arrêté, repris ou supprimé du disque ;
+    les autres fichiers ne sont pas touchés.
+  * Un torrent fini ne reste plus à 97 % après une revérification.
+
+ -- Tof <nourpon@gmail.com>  Wed, 18 Nov 2026 09:32:33 +0000
+
 telemaque (1.0.5~noble1) noble; urgency=medium
 
   * Renommer le dossier ou n'importe quel fichier d'un torrent : dans le
