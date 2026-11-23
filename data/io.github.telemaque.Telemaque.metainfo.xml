@@ -73,6 +73,17 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.7" date="2026-11-23">
+      <description>
+        <ul>
+          <li>A .torrent file stored in a folder whose name is not UTF-8 opens again</li>
+          <li>A download folder whose name is not UTF-8 is refused with a clear message instead of failing silently</li>
+          <li>Settings and the list of torrents are saved again after such a path was used</li>
+          <li>A file checked again on a torrent whose sharing has stopped downloads, then the sharing rule applies again</li>
+          <li>Several magnet links dropped at once are all added</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.6" date="2026-11-18">
       <description>
         <ul>

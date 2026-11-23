@@ -1,3 +1,17 @@
+telemaque (1.0.7~noble1) noble; urgency=medium
+
+  * Un fichier .torrent rangé dans un dossier au nom non UTF-8 s'ouvre
+    de nouveau.
+  * Un dossier d'enregistrement au nom non UTF-8 est refusé avec un
+    message clair, au lieu d'échouer sans rien dire.
+  * Les réglages et la liste des torrents s'enregistrent de nouveau
+    après l'usage d'un tel chemin.
+  * Un fichier recoché sur un torrent dont le partage est arrêté se
+    télécharge, puis la règle de partage s'applique de nouveau.
+  * Plusieurs liens magnet déposés d'un coup sont tous ajoutés.
+
+ -- Tof <nourpon@gmail.com>  Mon, 23 Nov 2026 11:54:03 +0000
+
 telemaque (1.0.6~noble1) noble; urgency=medium
 
   * Une petite flèche déplie les fichiers d'un torrent sous sa ligne,
