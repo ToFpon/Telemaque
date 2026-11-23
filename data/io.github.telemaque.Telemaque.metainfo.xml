@@ -81,6 +81,7 @@
           <li>Settings and the list of torrents are saved again after such a path was used</li>
           <li>A file checked again on a torrent whose sharing has stopped downloads, then the sharing rule applies again</li>
           <li>Several magnet links dropped at once are all added</li>
+          <li>Suspend is only prevented during real activity (data arriving, checking, moving): a magnet link without sources no longer keeps the computer awake forever</li>
         </ul>
       </description>
     </release>

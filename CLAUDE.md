@@ -173,6 +173,10 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
 - Petits : dossier tapé à la main relatif (« Films ») → dans le dossier personnel, pas le dossier courant du
   processus ; plusieurs liens magnet déposés : tous ajoutés ; « Ouvrir » part du dossier Téléchargements de
   xdg-user-dirs (pas « ~/Téléchargements » écrit en dur).
+- Mise en veille (fonctionnalité `inhibit`, choix de Tof) : empêchée seulement pendant une VRAIE activité
+  (`app.keeps_awake` : données qui arrivent, vérification, déplacement), puis `INHIBIT_GRACE` (5 min) de marge ;
+  avant, tout téléchargement inachevé la bloquait — un lien magnet mort gardait le PC éveillé pour toujours.
+  Testé : `test_inhibit`.
 
 ## Tests
 

@@ -8,31 +8,31 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: telemaque/app.py:33
+#: telemaque/app.py:45
 msgid "Afficher la version"
 msgstr "Version anzeigen"
 
-#: telemaque/app.py:248
+#: telemaque/app.py:263
 msgid "Téléchargement terminé"
 msgstr "Download abgeschlossen"
 
-#: telemaque/app.py:253 telemaque/ui/window.py:208
+#: telemaque/app.py:268 telemaque/ui/window.py:208
 msgid "Ouvrir"
 msgstr "Öffnen"
 
-#: telemaque/app.py:254 telemaque/ui/window.py:209
+#: telemaque/app.py:269 telemaque/ui/window.py:209
 msgid "Afficher dans le dossier"
 msgstr "Im Ordner anzeigen"
 
-#: telemaque/app.py:309
+#: telemaque/app.py:324
 msgid "Moteur"
 msgstr "Engine"
 
-#: telemaque/app.py:177
+#: telemaque/app.py:192
 msgid "Téléchargement en cours"
 msgstr "Download läuft"
 
-#: telemaque/app.py:305
+#: telemaque/app.py:320
 msgid "Un client BitTorrent tout simple pour GNOME."
 msgstr "Ein einfacher BitTorrent-Client für GNOME."
 
@@ -103,8 +103,9 @@ msgstr "Bereitschaft verhindern"
 
 #: telemaque/features.py:44
 msgid ""
-"L'ordinateur ne se met pas en veille tant qu'un téléchargement est en cours"
-msgstr "Der Computer geht nicht in Bereitschaft, solange ein Download läuft"
+"L'ordinateur ne se met pas en veille tant que des données arrivent (cinq "
+"minutes de marge)"
+msgstr "Der Computer geht nicht in Bereitschaft, solange Daten ankommen (fünf Minuten Spielraum)"
 
 #: telemaque/format.py:9
 msgid "o"

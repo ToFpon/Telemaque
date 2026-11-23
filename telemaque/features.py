@@ -41,7 +41,7 @@ FEATURES = [
             tr("Une notification du bureau, avec « Ouvrir » et « Afficher dans le dossier »"),
             "preferences-system-notifications-symbolic"),
     Feature("inhibit", tr("Empêcher la mise en veille"),
-            tr("L'ordinateur ne se met pas en veille tant qu'un téléchargement est en cours"),
+            tr("L'ordinateur ne se met pas en veille tant que des données arrivent (cinq minutes de marge)"),
             "system-suspend-symbolic"),
 ]
 

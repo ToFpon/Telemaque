@@ -22,6 +22,18 @@ from .settings import DATA_DIR as STATE_ROOT, settings  # noqa: E402
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 POLL_MS = 1000
+INHIBIT_GRACE = 300      # s : veille encore empêchée après la dernière activité (une source qui revient)
+
+
+def keeps_awake(transfers, last_active: float, now: float) -> tuple:
+    """(empêcher la veille ?, dernière activité) — seulement pour une VRAIE activité : des données qui arrivent,
+    une vérification, un déplacement ; puis INHIBIT_GRACE s de marge (débit qui retombe un instant). Un lien magnet
+    mort ou un téléchargement sans source ne bloque plus la veille pour toujours (choix de Tof). Le partage seul
+    ne l'a jamais bloquée."""
+    if any(t.state in ("checking", "moving") or (t.downloading and t.down_rate > 0) for t in transfers):
+        last_active = now
+    pending = any(t.downloading or t.state == "moving" for t in transfers)
+    return pending and last_active > 0 and now - last_active < INHIBIT_GRACE, last_active
 
 
 class TelemaqueApp(Adw.Application):
@@ -37,6 +49,7 @@ class TelemaqueApp(Adw.Application):
         self._listeners: list = []
         self._poll_id = 0
         self._inhibit = 0
+        self._last_active = 0.0
         self._held = False
         self._quitting = False
         self.tray = None
@@ -171,7 +184,9 @@ class TelemaqueApp(Adw.Application):
         self._poll()
 
     def _sync_inhibit(self):
-        busy = features.enabled("inhibit") and any(t.downloading for t in self.transfers)
+        import time
+        busy, self._last_active = keeps_awake(self.transfers, self._last_active, time.monotonic())
+        busy = busy and features.enabled("inhibit")
         if busy and not self._inhibit:
             self._inhibit = self.inhibit(self.window, Gtk.ApplicationInhibitFlags.SUSPEND,
                                          tr("Téléchargement en cours"))

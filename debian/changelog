@@ -9,8 +9,11 @@ telemaque (1.0.7~noble1) noble; urgency=medium
   * Un fichier recoché sur un torrent dont le partage est arrêté se
     télécharge, puis la règle de partage s'applique de nouveau.
   * Plusieurs liens magnet déposés d'un coup sont tous ajoutés.
+  * La mise en veille n'est plus empêchée que pendant une vraie activité
+    (données qui arrivent, vérification, déplacement) : un lien magnet
+    sans source ne garde plus l'ordinateur éveillé pour toujours.
 
- -- Tof <nourpon@gmail.com>  Mon, 23 Nov 2026 11:54:03 +0000
+ -- Tof <nourpon@gmail.com>  Mon, 23 Nov 2026 11:56:48 +0000
 
 telemaque (1.0.6~noble1) noble; urgency=medium
 
