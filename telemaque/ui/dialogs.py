@@ -17,8 +17,8 @@ from .. import format as fmt  # noqa: E402
 from ..backend import engine as eng  # noqa: E402
 from ..i18n import ntr, tr  # noqa: E402
 from ..settings import settings  # noqa: E402
-from .common import (DialogWindow, RenameDialog, choose_folder, dialog_shell, focus_later, path_row,  # noqa: E402
-                     shown)
+from .common import (DialogWindow, RenameDialog, choose_folder, dialog_shell, focus_later, folder_usable,  # noqa: E402
+                     path_row, shown)
 
 MAX_LISTED = 2000             # au-delà, pas de cases une par une (packs immenses) : tout est gardé
 
@@ -204,7 +204,10 @@ class AddDialog:
         return None
 
     def _browse(self, row):
-        choose_folder(self.dialog, tr("Enregistrer dans"), row.get_text(), lambda p: row.set_text(p))
+        def chosen(p):
+            if folder_usable(self.dialog, p):
+                row.set_text(p)
+        choose_folder(self.dialog, tr("Enregistrer dans"), row.get_text(), chosen)
 
     def _sync(self):
         if self.files is None:
@@ -220,6 +223,8 @@ class AddDialog:
         folder = os.path.expanduser(self.folder.get_text().strip())
         if not folder:
             return
+        if not os.path.isabs(folder):        # « Films » tapé à la main : dans le dossier personnel, pas
+            folder = os.path.join(os.path.expanduser("~"), folder)       # dans le dossier courant du processus
         try:
             os.makedirs(folder, exist_ok=True)
         except OSError as e:

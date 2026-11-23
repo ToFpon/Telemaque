@@ -46,8 +46,8 @@ msgid ""
 "mettre en pause, Quitter (extension AppIndicator, présente sur Zorin et "
 "Ubuntu)"
 msgstr ""
-"In the background, an icon keeps Télémaque at hand: status, Show, Pause All,"
-" Quit (AppIndicator extension, present on Zorin and Ubuntu)"
+"In the background, an icon keeps Télémaque at hand: status, Show, Pause All, "
+"Quit (AppIndicator extension, present on Zorin and Ubuntu)"
 
 #: telemaque/features.py:29
 msgid "Vérifier l'adresse publique"
@@ -144,7 +144,7 @@ msgstr "{0} min"
 msgid "{0} h {1:02d}"
 msgstr "{0} h {1:02d}"
 
-#: telemaque/tray.py:98 telemaque/ui/window.py:613
+#: telemaque/tray.py:98 telemaque/ui/window.py:615
 msgid "Rien en cours"
 msgstr "Nothing in Progress"
 
@@ -171,22 +171,35 @@ msgid "Tout reprendre"
 msgstr "Resume All"
 
 #: telemaque/tray.py:204 telemaque/ui/preferences.py:91
-#: telemaque/ui/window.py:359 telemaque/ui/window.py:892
+#: telemaque/ui/window.py:359 telemaque/ui/window.py:896
 msgid "Quitter"
 msgstr "Quit"
 
-#: telemaque/ui/common.py:428
+#: telemaque/ui/common.py:220 telemaque/ui/dialogs.py:236
+#: telemaque/ui/dialogs.py:232
+msgid "Impossible d'utiliser ce dossier"
+msgstr "This folder cannot be used"
+
+#: telemaque/ui/common.py:440
 msgid "Parcourir…"
 msgstr "Browse…"
 
-#: telemaque/ui/common.py:440 telemaque/ui/common.py:106
-#: telemaque/ui/dialogs.py:257 telemaque/ui/window.py:796
+#: telemaque/ui/common.py:452 telemaque/ui/common.py:106
+#: telemaque/ui/dialogs.py:262 telemaque/ui/window.py:800
 msgid "Annuler"
 msgstr "Cancel"
 
 #: telemaque/ui/common.py:109
 msgid "Renommer"
 msgstr "Rename"
+
+#: telemaque/ui/common.py:221
+msgid ""
+"Son nom contient des caractères illisibles (« {0} ») : le moteur BitTorrent "
+"ne sait pas y écrire. Renommez-le ou choisissez-en un autre."
+msgstr ""
+"Its name contains unreadable characters (“{0}”): the BitTorrent engine cannot write "
+"there. Rename it or choose another one."
 
 #: telemaque/ui/common.py:116
 msgid "Nom du dossier"
@@ -208,12 +221,12 @@ msgstr "Download"
 msgid "Dossier"
 msgstr "Folder"
 
-#: telemaque/ui/dialogs.py:207 telemaque/ui/dialogs.py:153
+#: telemaque/ui/dialogs.py:210 telemaque/ui/dialogs.py:153
 msgid "Enregistrer dans"
 msgstr "Save In"
 
-#: telemaque/ui/dialogs.py:323 telemaque/ui/dialogs.py:188
-#: telemaque/ui/window.py:809
+#: telemaque/ui/dialogs.py:328 telemaque/ui/dialogs.py:188
+#: telemaque/ui/window.py:813
 msgid "Renommer le fichier"
 msgstr "Rename File"
 
@@ -257,36 +270,32 @@ msgstr ""
 msgid "Ajouter en pause"
 msgstr "Add paused"
 
-#: telemaque/ui/dialogs.py:188 telemaque/ui/window.py:809
+#: telemaque/ui/dialogs.py:188 telemaque/ui/window.py:813
 msgid "Renommer le dossier"
 msgstr "Rename Folder"
 
-#: telemaque/ui/dialogs.py:231 telemaque/ui/dialogs.py:227
-msgid "Impossible d'utiliser ce dossier"
-msgstr "This folder cannot be used"
-
-#: telemaque/ui/dialogs.py:231
+#: telemaque/ui/dialogs.py:236
 msgid "Vous n'avez pas le droit d'y écrire."
 msgstr "You do not have permission to write there."
 
-#: telemaque/ui/dialogs.py:253 telemaque/ui/window.py:350
+#: telemaque/ui/dialogs.py:258 telemaque/ui/window.py:350
 msgid "Ajouter un lien magnet"
 msgstr "Add a Magnet Link"
 
-#: telemaque/ui/dialogs.py:260
+#: telemaque/ui/dialogs.py:265
 msgid "Continuer"
 msgstr "Continue"
 
-#: telemaque/ui/dialogs.py:267 telemaque/ui/dialogs.py:135
+#: telemaque/ui/dialogs.py:272 telemaque/ui/dialogs.py:135
 msgid "Lien magnet"
 msgstr "Magnet link"
 
-#: telemaque/ui/dialogs.py:298 telemaque/ui/dialogs.py:162
-#: telemaque/ui/dialogs.py:303
+#: telemaque/ui/dialogs.py:303 telemaque/ui/dialogs.py:162
+#: telemaque/ui/dialogs.py:308
 msgid "Fichiers"
 msgstr "Files"
 
-#: telemaque/ui/dialogs.py:306
+#: telemaque/ui/dialogs.py:311
 msgid "Décochez un fichier pour ne pas le télécharger."
 msgstr "Uncheck a file to skip it."
 
@@ -324,7 +333,7 @@ msgid_plural "{0} fichiers"
 msgstr[0] "{0} file"
 msgstr[1] "{0} files"
 
-#: telemaque/ui/preferences.py:86 telemaque/ui/preferences.py:127
+#: telemaque/ui/preferences.py:86 telemaque/ui/preferences.py:129
 msgid "Dossier par défaut"
 msgstr "Default folder"
 
@@ -440,27 +449,27 @@ msgstr "Language"
 msgid "Appliquée au prochain démarrage"
 msgstr "Applied at the next start"
 
-#: telemaque/ui/preferences.py:130
+#: telemaque/ui/preferences.py:132
 msgid "Réseau"
 msgstr "Network"
 
-#: telemaque/ui/preferences.py:132
+#: telemaque/ui/preferences.py:134
 msgid "Port d'écoute"
 msgstr "Listening port"
 
-#: telemaque/ui/preferences.py:134
+#: telemaque/ui/preferences.py:136
 msgid "Réseau DHT"
 msgstr "DHT network"
 
-#: telemaque/ui/preferences.py:135
+#: telemaque/ui/preferences.py:137
 msgid "Trouver des sources sans tracker ; indispensable aux liens magnet"
 msgstr "Find sources without a tracker; required for magnet links"
 
-#: telemaque/ui/preferences.py:140
+#: telemaque/ui/preferences.py:142
 msgid "Fonctionnalités"
 msgstr "Features"
 
-#: telemaque/ui/preferences.py:142
+#: telemaque/ui/preferences.py:144
 msgid ""
 "Chaque fonctionnalité s'active ou se coupe tout de suite, sans redémarrer "
 "Télémaque"
@@ -471,11 +480,11 @@ msgstr ""
 msgid "Demander"
 msgstr "Ask"
 
-#: telemaque/ui/preferences.py:91 telemaque/ui/window.py:893
+#: telemaque/ui/preferences.py:91 telemaque/ui/window.py:897
 msgid "Continuer en arrière-plan"
 msgstr "Keep Running in the Background"
 
-#: telemaque/ui/preferences.py:133
+#: telemaque/ui/preferences.py:135
 msgid "Ouvert sur la box automatiquement quand elle le permet (UPnP)"
 msgstr "Opened on the router automatically when it allows it (UPnP)"
 
@@ -545,11 +554,11 @@ msgstr[1] "DHT: on, {0} nodes"
 msgid "Fichiers…"
 msgstr "Files…"
 
-#: telemaque/ui/window.py:214 telemaque/ui/window.py:659
+#: telemaque/ui/window.py:214 telemaque/ui/window.py:661
 msgid "Déplacer…"
 msgstr "Move…"
 
-#: telemaque/ui/window.py:217 telemaque/ui/window.py:658
+#: telemaque/ui/window.py:217 telemaque/ui/window.py:660
 msgid "Supprimer…"
 msgstr "Remove…"
 
@@ -557,39 +566,39 @@ msgstr "Remove…"
 msgid "À propos de Télémaque"
 msgstr "About Télémaque"
 
-#: telemaque/ui/window.py:518
+#: telemaque/ui/window.py:519
 msgid "Ouvrir des fichiers torrent"
 msgstr "Open Torrent Files"
 
-#: telemaque/ui/window.py:727
+#: telemaque/ui/window.py:729
 msgid "Déplacer vers"
 msgstr "Move To"
 
-#: telemaque/ui/window.py:794
+#: telemaque/ui/window.py:798
 msgid ""
 "Le fichier est effacé du disque et ne sera plus téléchargé. Les autres "
 "fichiers du torrent ne sont pas touchés ; le torrent est revérifié, ce qui "
 "peut prendre un moment pour un gros torrent."
 msgstr ""
-"The file is erased from the disk and will no longer be downloaded. The other"
-" files of the torrent are not touched; the torrent is checked again, which "
+"The file is erased from the disk and will no longer be downloaded. The other "
+"files of the torrent are not touched; the torrent is checked again, which "
 "can take a moment for a big torrent."
 
-#: telemaque/ui/window.py:857
+#: telemaque/ui/window.py:861
 msgid "« Retirer de la liste » garde les fichiers déjà téléchargés."
 msgstr "“Remove from List” keeps the files already downloaded."
 
-#: telemaque/ui/window.py:889
+#: telemaque/ui/window.py:893
 msgid "Continuer en arrière-plan ?"
 msgstr "Keep running in the background?"
 
-#: telemaque/ui/window.py:890
+#: telemaque/ui/window.py:894
 msgid ""
 "Télémaque peut continuer à télécharger et à partager sans fenêtre. Relancez-"
 "le pour la retrouver."
 msgstr ""
-"Télémaque can keep downloading and sharing without a window. Launch it again"
-" to bring the window back."
+"Télémaque can keep downloading and sharing without a window. Launch it again "
+"to bring the window back."
 
 #: telemaque/ui/window.py:32
 msgid "Erreur : {0}"
@@ -660,8 +669,8 @@ msgid ""
 "Sources : pairs qui ont tout le fichier ; pairs : les autres. Ceux auxquels "
 "Télémaque est relié en ce moment."
 msgstr ""
-"Seeds: peers that have the whole file; peers: the others. Those Télémaque is"
-" connected to right now."
+"Seeds: peers that have the whole file; peers: the others. Those Télémaque is "
+"connected to right now."
 
 #: telemaque/ui/window.py:221
 msgid "Plus d'actions"
@@ -675,7 +684,7 @@ msgstr "Select"
 msgid "Masquer les fichiers"
 msgstr "Hide Files"
 
-#: telemaque/ui/window.py:307 telemaque/ui/window.py:660
+#: telemaque/ui/window.py:307 telemaque/ui/window.py:662
 msgid "Mettre en pause"
 msgstr "Pause"
 
@@ -700,8 +709,8 @@ msgid ""
 "Ouvrez un fichier .torrent ou collez un lien magnet (Ctrl+V). Vous pouvez "
 "aussi les glisser ici."
 msgstr ""
-"Open a .torrent file or paste a magnet link (Ctrl+V). You can also drag them"
-" here."
+"Open a .torrent file or paste a magnet link (Ctrl+V). You can also drag them "
+"here."
 
 #: telemaque/ui/window.py:371
 msgid "Ouvrir un fichier torrent…"
@@ -719,23 +728,23 @@ msgstr ""
 "DHT finds sources without a tracker; required for magnet links. Preferences "
 "→ Network."
 
-#: telemaque/ui/window.py:652
+#: telemaque/ui/window.py:654
 msgid "Tout désélectionner (Échap)"
 msgstr "Select None (Esc)"
 
-#: telemaque/ui/window.py:654
+#: telemaque/ui/window.py:656
 msgid "Tout sélectionner (Ctrl+A)"
 msgstr "Select All (Ctrl+A)"
 
-#: telemaque/ui/window.py:661 telemaque/ui/window.py:304
+#: telemaque/ui/window.py:663 telemaque/ui/window.py:304
 msgid "Reprendre"
 msgstr "Resume"
 
-#: telemaque/ui/window.py:760 telemaque/ui/window.py:767
+#: telemaque/ui/window.py:764 telemaque/ui/window.py:771
 msgid "Les fichiers ne sont plus là"
 msgstr "The files are no longer there"
 
-#: telemaque/ui/window.py:878
+#: telemaque/ui/window.py:882
 msgid "Ne plus demander"
 msgstr "Don't ask again"
 
@@ -795,17 +804,17 @@ msgstr "This magnet link is not valid"
 msgid "Déjà dans la liste"
 msgstr "Already in the list"
 
-#: telemaque/ui/window.py:564
+#: telemaque/ui/window.py:566
 msgid "Impossible d'ajouter ce torrent"
 msgstr "This torrent cannot be added"
 
-#: telemaque/ui/window.py:697
+#: telemaque/ui/window.py:699
 msgid "{0} sélectionné"
 msgid_plural "{0} sélectionnés"
 msgstr[0] "{0} selected"
 msgstr[1] "{0} selected"
 
-#: telemaque/ui/window.py:741
+#: telemaque/ui/window.py:745
 msgid ""
 "Les fichiers sont restés où ils étaient. Un fichier du même nom dans le "
 "dossier choisi n'est jamais écrasé."
@@ -813,17 +822,17 @@ msgstr ""
 "The files stayed where they were. A file with the same name in the chosen "
 "folder is never overwritten."
 
-#: telemaque/ui/window.py:793 telemaque/ui/window.py:853
+#: telemaque/ui/window.py:797 telemaque/ui/window.py:857
 msgid "Supprimer « {0} » ?"
 msgstr "Remove “{0}”?"
 
-#: telemaque/ui/window.py:854
+#: telemaque/ui/window.py:858
 msgid "Supprimer {0} téléchargement ?"
 msgid_plural "Supprimer {0} téléchargements ?"
 msgstr[0] "Remove {0} download?"
 msgstr[1] "Remove {0} downloads?"
 
-#: telemaque/ui/window.py:513
+#: telemaque/ui/window.py:512
 msgid "Pas de lien magnet dans le presse-papiers"
 msgstr "No magnet link in the clipboard"
 
@@ -839,33 +848,33 @@ msgstr "All files"
 msgid "« {0} » est déjà dans la liste"
 msgstr "“{0}” is already in the list"
 
-#: telemaque/ui/window.py:592
+#: telemaque/ui/window.py:594
 msgid "↓ {0} · ↑ {1}"
 msgstr "↓ {0} · ↑ {1}"
 
-#: telemaque/ui/window.py:732
+#: telemaque/ui/window.py:736
 msgid "Déplacement de {0} téléchargement…"
 msgid_plural "Déplacement de {0} téléchargements…"
 msgstr[0] "Moving {0} download…"
 msgstr[1] "Moving {0} downloads…"
 
-#: telemaque/ui/window.py:740
+#: telemaque/ui/window.py:744
 msgid "Impossible de déplacer « {0} »"
 msgstr "Cannot move “{0}”"
 
-#: telemaque/ui/window.py:785
+#: telemaque/ui/window.py:789
 msgid "Impossible pour l'instant (vérification ou déplacement en cours)"
 msgstr "Not possible right now (checking or moving)"
 
-#: telemaque/ui/window.py:796
+#: telemaque/ui/window.py:800
 msgid "Supprimer"
 msgstr "Delete"
 
-#: telemaque/ui/window.py:858
+#: telemaque/ui/window.py:862
 msgid "Retirer de la liste"
 msgstr "Remove from List"
 
-#: telemaque/ui/window.py:859
+#: telemaque/ui/window.py:863
 msgid "Supprimer aussi les fichiers"
 msgstr "Delete the Files Too"
 
@@ -873,19 +882,19 @@ msgstr "Delete the Files Too"
 msgid "{0} %"
 msgstr "{0}%"
 
-#: telemaque/ui/window.py:613
+#: telemaque/ui/window.py:615
 msgid "Tous les téléchargements sont terminés."
 msgstr "All downloads are finished."
 
-#: telemaque/ui/window.py:614
+#: telemaque/ui/window.py:616
 msgid "Aucun téléchargement terminé"
 msgstr "No Finished Downloads"
 
-#: telemaque/ui/window.py:614
+#: telemaque/ui/window.py:616
 msgid "Ils apparaîtront ici une fois complets."
 msgstr "They will show up here once complete."
 
-#: telemaque/ui/window.py:788
+#: telemaque/ui/window.py:792
 msgid "« {0} » supprimé"
 msgstr "“{0}” deleted"
 

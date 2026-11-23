@@ -158,6 +158,22 @@ ici du torrent de base, en .deb, au look GNOME. Nom : le fils d'Ulysse, et « t�
   garde les dossiers XDG du premier usage ; lanceur copié avec Exec=true, GIO ignore un Exec introuvable).
   Types : magnet + .torrent.
 
+## Audit de novembre 2026 (tests `AuditTest` de test_engine, ils échouent sur l'ancien code)
+
+- Noms non UTF-8 (vieille clé, archive de Windows) : l'interface Python de libtorrent passe TOUT chemin en UTF-8
+  (ni « \udcXX » ni octets acceptés). .torrent lu par ses OCTETS (`engine._torrent_info`, 64 Mo au plus ; avant :
+  « No such file or directory » → « pas un torrent valide ») ; dossier d'enregistrement / de déplacement non
+  UTF-8 → `engine.PathError`, refusé avec un message par `common.folder_usable` (ajout, déplacement, Préférences ;
+  avant : UnicodeEncodeError sans message). state.json et settings.json en `ensure_ascii` (un chemin non UTF-8,
+  « supprimer le .torrent » par exemple, bloquait TOUT enregistrement). `settings.download_dir()` : « ~ » compris,
+  absolu, UTF-8, sinon Téléchargements.
+- Fichier recoché (case, ⏸ / ▶) sur un torrent dont le partage a été arrêté par la règle : il restait en pause pour
+  toujours ; relancé à la main, il partageait ensuite sans fin. Maintenant `set_wanted` le relance sans
+  `seed_forever` (décidé d'après l'avancement du FICHIER : l'état du torrent est en retard juste après).
+- Petits : dossier tapé à la main relatif (« Films ») → dans le dossier personnel, pas le dossier courant du
+  processus ; plusieurs liens magnet déposés : tous ajoutés ; « Ouvrir » part du dossier Téléchargements de
+  xdg-user-dirs (pas « ~/Téléchargements » écrit en dur).
+
 ## Tests
 
 ```sh

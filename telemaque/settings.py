@@ -93,15 +93,21 @@ class Settings:
             self._listeners.remove(cb)
 
     def download_dir(self) -> str:
-        d = self["download_dir"]
-        return d if d and os.path.isdir(d) else default_download_dir()
+        """Dossier choisi s'il est utilisable (« ~ » compris ; absolu ; nom en UTF-8, cf. engine.PathError),
+        sinon Téléchargements."""
+        d = os.path.expanduser(self["download_dir"] or "")
+        try:
+            d.encode("utf-8")
+        except UnicodeEncodeError:
+            d = ""
+        return d if d and os.path.isabs(d) and os.path.isdir(d) else default_download_dir()
 
     def save(self):
         try:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
             tmp = self.path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as fh:
-                json.dump(self.data, fh, indent=2, ensure_ascii=False)
+                json.dump(self.data, fh, indent=2, ensure_ascii=True)
             os.replace(tmp, self.path)
         except OSError:
             pass

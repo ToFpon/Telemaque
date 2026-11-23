@@ -74,6 +74,23 @@ def renamed(paths: dict, index: Optional[int] = None, name: str = "", root: Opti
     return out
 
 
+class PathError(TorrentError):
+    """Dossier au nom non UTF-8 (vieille clé, archive de Windows) : l'interface Python de libtorrent passe les
+    chemins en UTF-8 (ni texte à « \\udcXX » ni octets acceptés) — sans ce refus, UnicodeEncodeError."""
+
+    def __init__(self, path: str):
+        super().__init__(path)
+        self.path = path
+
+
+def utf8_path(path: str) -> bool:
+    try:
+        path.encode("utf-8")
+        return True
+    except UnicodeEncodeError:
+        return False
+
+
 class Duplicate(TorrentError):
     def __init__(self, tid: str):
         super().__init__(tid)
@@ -169,12 +186,25 @@ def _complete(st) -> bool:
     return st.total_wanted_done >= st.total_wanted or bool(getattr(st, "is_finished", False))
 
 
-def read_torrent(path: str) -> TorrentInfo:
-    """Lit un fichier .torrent sans l'ajouter."""
+MAX_TORRENT_FILE = 64 << 20          # un .torrent de plusieurs dizaines de Mo est déjà énorme
+
+
+def _torrent_info(path: str):
+    """Lit un .torrent par ses OCTETS : libtorrent passe le chemin en UTF-8, un dossier au nom non UTF-8
+    (vieille clé, archive de Windows) donnait « No such file or directory » — « pas un torrent valide »."""
     try:
-        ti = lt.torrent_info(path)
+        with open(path, "rb") as fh:
+            data = fh.read(MAX_TORRENT_FILE + 1)
+        if len(data) > MAX_TORRENT_FILE:
+            raise ValueError("file too large")
+        return lt.torrent_info(data)
     except (RuntimeError, ValueError, OSError) as e:
         raise TorrentError(str(e)) from e
+
+
+def read_torrent(path: str) -> TorrentInfo:
+    """Lit un fichier .torrent sans l'ajouter."""
+    ti = _torrent_info(path)
     fs = ti.files()
     files = [FileEntry(i, fs.file_path(i), fs.file_size(i)) for i in range(fs.num_files()) if not _is_pad(fs, i)]
     return TorrentInfo(_tid_of(ti.info_hashes()), ti.name(), sum(f.size for f in files), files)
@@ -265,6 +295,8 @@ class Engine:
 
     # -- ajout ---------------------------------------------------------------------------------
     def _add_params(self, params, save_path: str, paused: bool):
+        if not utf8_path(save_path):
+            raise PathError(save_path)
         params.save_path = save_path
         flags = params.flags
         flags &= ~lt.torrent_flags.auto_managed
@@ -280,10 +312,7 @@ class Engine:
         """wanted : indices des fichiers à télécharger (None : tous). delete_source : le fichier .torrent
         est supprimé une fois ses données de reprise ÉCRITES (elles contiennent tout le torrent) — un
         plantage juste après l'ajout ne fait rien perdre."""
-        try:
-            ti = lt.torrent_info(path)
-        except (RuntimeError, ValueError, OSError) as e:
-            raise TorrentError(str(e)) from e
+        ti = _torrent_info(path)
         tid = _tid_of(ti.info_hashes())
         if tid in self.handles:
             raise Duplicate(tid)
@@ -375,7 +404,8 @@ class Engine:
         self._save_meta()
 
     def move(self, tid: str, dest: str) -> bool:
-        """Déplace les fichiers d'un téléchargement (en cours, en pause ou fini) vers le dossier `dest`, comme
+        """Déplace les fichiers d'un téléchargement (en cours, en pause ou fini) vers le dossier `dest` (PathError :
+        nom non UTF-8), comme
         qBittorrent : libtorrent les déplace dans son propre fil (simple renommage sur le même disque, copie
         puis suppression sinon) et continue de télécharger au nouvel endroit. Rien n'est jamais écrasé
         (fail_if_exist) : un fichier du même nom déjà là-bas fait échouer le déplacement, tout reste en
@@ -384,6 +414,8 @@ class Engine:
         if h is None or tid in self._moving:
             return False
         dest = os.path.abspath(os.path.expanduser(dest))
+        if not utf8_path(dest):
+            raise PathError(dest)
         if os.path.abspath(h.status().save_path) == dest:
             return False
         self._moving.add(tid)
@@ -508,6 +540,7 @@ class Engine:
             return
         self.session.remove_torrent(h, lt.session.delete_files if delete_files else 0)
         self._moving.discard(tid)
+        self._counts.pop(tid, None)
         self.meta.pop(tid, None)
         self._pending_saves.discard(tid)
         self._save_meta()
@@ -550,7 +583,23 @@ class Engine:
         if wanted and m.get("notified"):
             m.pop("notified", None)              # un fichier de plus : une nouvelle fin à signaler
             self._save_meta()
+        if wanted and m.get("seed_stopped") and not self._file_done(h, index):
+            # partage arrêté par la règle (en pause) : le fichier recoché doit se télécharger. Pas de
+            # « seed_forever » (relancé par la règle, pas à la main) : elle s'appliquera de nouveau à la fin
+            m.pop("seed_stopped", None)
+            self._save_meta()
+            h.resume()
         self._request_save(tid)
+
+    @staticmethod
+    def _file_done(h, index: int) -> bool:
+        """Fichier déjà complet sur le disque (l'état du torrent, lui, est en retard juste après un changement
+        de priorité : « complete » encore vrai)."""
+        ti = h.torrent_file()
+        if ti is None:
+            return False
+        progress = h.file_progress()
+        return index < len(progress) and progress[index] >= ti.files().file_size(index)
 
     def delete_file(self, tid: str, index: int) -> bool:
         """Un fichier d'un torrent de plusieurs fichiers effacé du disque (demande de Tof) : plus téléchargé
@@ -877,7 +926,7 @@ class Engine:
 
     def _save_meta(self):
         _write_atomic(os.path.join(self.state_dir, "state.json"),
-                      json.dumps(self.meta, indent=1, ensure_ascii=False).encode("utf-8"))
+                      json.dumps(self.meta, indent=1, ensure_ascii=True).encode("utf-8"))
 
     def _load(self):
         try:

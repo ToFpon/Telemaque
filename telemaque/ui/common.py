@@ -211,6 +211,18 @@ def choose_folder(parent: Gtk.Widget, title: str, initial: str, callback: Callab
             callback(f.get_path())
     dlg.select_folder(parent.get_root(), None, done)
 
+def folder_usable(parent: Gtk.Widget, path: str) -> bool:
+    """Dossier au nom non UTF-8 : libtorrent ne sait pas y écrire (engine.PathError) — refusé avec un message."""
+    from ..backend.engine import utf8_path
+    from ..i18n import tr
+    if utf8_path(path):
+        return True
+    alert(parent, tr("Impossible d'utiliser ce dossier"),
+          tr("Son nom contient des caractères illisibles (« {0} ») : le moteur BitTorrent ne sait pas y écrire. "
+             "Renommez-le ou choisissez-en un autre.").format(shown(os.path.basename(path) or path)))
+    return False
+
+
 def choose_files(parent: Gtk.Widget, title: str, initial: str, callback: Callable[[list], None],
                  multiple: bool = True, filters: Optional[list] = None):
     dlg = Gtk.FileDialog(title=title, modal=True)

@@ -4,6 +4,7 @@ torrents (127.0.0.1, ni DHT ni Internet).
     python3.12 -m unittest discover -s tests
 """
 
+import json
 import os
 import shutil
 import sys
@@ -687,6 +688,65 @@ class SafetyTest(Base):
                 if n in ("evade.txt", "absolu.txt"):
                     self.assertTrue(os.path.join(root, n).startswith(box + os.sep), os.path.join(root, n))
         self.assertFalse(os.path.exists("/etc/absolu.txt"))
+
+
+
+class AuditTest(Base):
+    """Audit de novembre 2026 : chaque cas échouait sur l'ancien code."""
+
+    def test_torrent_in_non_utf8_folder(self):
+        """.torrent dans un dossier au nom non UTF-8 : libtorrent ne l'ouvrait pas (« pas un torrent valide ») ;
+        supprimé après l'ajout : state.json ne s'écrivait plus jamais (UnicodeEncodeError)."""
+        weird = os.path.join(os.fsencode(self.dir), b"caf\xe9")
+        os.makedirs(weird)
+        path = os.fsdecode(os.path.join(weird, b"s.torrent"))
+        shutil.copy(self.torrent, path)
+        self.assertEqual(eng.read_torrent(path).name, "Série")
+        e = self.leecher()
+        tid = e.add_torrent_file(path, self.dst, delete_source=True)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: not os.path.exists(path)))
+        with open(os.path.join(e.state_dir, "state.json"), encoding="utf-8") as fh:
+            self.assertIn(tid, json.load(fh))
+
+    def test_non_utf8_save_path_refused(self):
+        """Dossier d'enregistrement / de déplacement non UTF-8 : refus clair (PathError), plus d'UnicodeEncodeError."""
+        weird = os.fsdecode(os.path.join(os.fsencode(self.dir), b"caf\xe9"))
+        os.makedirs(weird)
+        e = self.leecher()
+        with self.assertRaises(eng.PathError):
+            e.add_torrent_file(self.torrent, weird)
+        self.assertEqual(e.handles, {})
+        tid = e.add_torrent_file(self.torrent, self.dst, paused=True)
+        with self.assertRaises(eng.PathError):
+            e.move(tid, weird)
+        self.assertFalse(e.moving(tid))
+
+    def test_rewanted_file_after_seed_stop_downloads(self):
+        """Fichier recoché après l'arrêt du partage (en pause par la règle) : il restait en pause pour toujours ;
+        relancé, il partageait ensuite sans fin (seed_forever)."""
+        e = self.leecher(seed_policy="never")
+        tid = e.add_torrent_file(self.torrent, self.dst)
+        small = next(f.index for f in e.files(tid) if f.path.endswith("lisez-moi.txt"))
+        e.set_wanted(tid, small, False)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).state == "done"))
+        e.set_wanted(tid, small, True)
+        self.link(e, tid)
+        self.assertTrue(until(self.engines, lambda: next(f for f in e.files(tid) if f.index == small).done > 0))
+        self.assertTrue(until(self.engines, lambda: e.transfer(tid).state == "done"))
+        self.assertFalse(e.meta[tid].get("seed_forever"))
+
+    def test_settings_non_utf8_folder(self):
+        """Réglage au nom non UTF-8 : save() levait UnicodeEncodeError (plus rien d'enregistré), et download_dir()
+        renvoyait un dossier inutilisable par libtorrent."""
+        from telemaque.settings import Settings, default_download_dir
+        s = Settings(os.path.join(self.dir, "settings.json"))
+        weird = os.fsdecode(os.path.join(os.fsencode(self.dir), b"caf\xe9"))
+        os.makedirs(weird)
+        s["download_dir"] = weird
+        self.assertEqual(Settings(s.path)["download_dir"], weird)
+        self.assertEqual(s.download_dir(), default_download_dir())
 
 
 if __name__ == "__main__":

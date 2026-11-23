@@ -17,9 +17,9 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
 from .. import APP_ID, APP_NAME, features, format as fmt  # noqa: E402
 from ..backend import engine as eng  # noqa: E402
 from ..i18n import ntr, tr  # noqa: E402
-from ..settings import settings  # noqa: E402
-from .common import (RenameDialog, alert, choose_files, choose_folder, open_with_default, show_in_folder,  # noqa: E402
-                     shown, toast)
+from ..settings import default_download_dir, settings  # noqa: E402
+from .common import (RenameDialog, alert, choose_files, choose_folder, folder_usable, open_with_default,  # noqa: E402
+                     show_in_folder, shown, toast)
 
 STATE_ICONS = {"paused": "media-playback-start-symbolic", "done": "media-playback-start-symbolic",
                "error": "view-refresh-symbolic"}
@@ -477,12 +477,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.add_controller(target)
 
     def _on_drop(self, _target, value, _x, _y):
-        if isinstance(value, str):
+        if isinstance(value, str):                 # plusieurs liens magnet déposés : tous, pas le premier seul
             for line in value.split():
                 if eng.is_magnet(line):
                     self.add_magnet(line)
-                    return True
-                if line.startswith("file://"):
+                elif line.startswith("file://"):
                     path = Gio.File.new_for_uri(line).get_path()
                     if path:
                         self.add_torrent_file(path)
@@ -515,8 +514,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     # -- ajout ------------------------------------------------------------------------------------
     def open_dialog(self):
-        choose_files(self, tr("Ouvrir des fichiers torrent"), os.path.expanduser("~/Téléchargements")
-                     if os.path.isdir(os.path.expanduser("~/Téléchargements")) else settings.download_dir(),
+        # là où le navigateur pose les .torrent : le dossier Téléchargements de xdg-user-dirs, quelle que soit la
+        # langue (« ~/Téléchargements » écrit en dur manquait « Downloads », « Downloads » allemand…)
+        choose_files(self, tr("Ouvrir des fichiers torrent"), default_download_dir(),
                      lambda paths: [self.add_torrent_file(p) for p in paths],
                      filters=[(tr("Fichiers torrent"), ["*.torrent"]), (tr("Tous les fichiers"), ["*"])])
 
@@ -560,6 +560,8 @@ class MainWindow(Adw.ApplicationWindow):
                 self.app.engine.add_magnet(magnet, save_path, paused=paused)
         except eng.Duplicate:
             toast(self, tr("Déjà dans la liste"))
+        except eng.PathError as e:
+            folder_usable(self, e.path)
         except eng.TorrentError as e:
             alert(self, tr("Impossible d'ajouter ce torrent"), str(e))
         self.app.refresh()
@@ -727,6 +729,8 @@ class MainWindow(Adw.ApplicationWindow):
         choose_folder(self, tr("Déplacer vers"), first.save_path, lambda folder: self.move_to(tids, folder))
 
     def move_to(self, tids: list, folder: str):
+        if not folder_usable(self, folder):
+            return
         started = [tid for tid in tids if self.app.engine.move(tid, folder)]
         if started:
             toast(self, ntr("Déplacement de {0} téléchargement…", "Déplacement de {0} téléchargements…",

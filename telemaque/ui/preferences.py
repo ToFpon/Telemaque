@@ -11,7 +11,7 @@ from gi.repository import Adw, Gtk  # noqa: E402
 from .. import features  # noqa: E402
 from ..i18n import LANGUAGE_NAMES, tr  # noqa: E402
 from ..settings import settings  # noqa: E402
-from .common import choose_folder, combo_row, path_row, shown  # noqa: E402
+from .common import choose_folder, combo_row, folder_usable, path_row, shown  # noqa: E402
 
 
 def apply_theme():
@@ -122,6 +122,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def _browse(self, row):
         def chosen(path):
+            if not folder_usable(self, path):
+                return
             row.set_text(shown(path))
             settings["download_dir"] = path
         choose_folder(self, tr("Dossier par défaut"), row.get_text(), chosen)
